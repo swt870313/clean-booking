@@ -11,10 +11,12 @@
         h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 6px; font-weight: bold; color: #333; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        textarea { resize: vertical; font-family: inherit; }
         .time-range { display: flex; gap: 10px; align-items: center; }
         .btn-submit { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-submit:hover { background: var(--secondary); }
+        .loading-text { color: #888; font-size: 14px; font-style: italic; }
     </style>
 </head>
 <body>
@@ -59,14 +61,15 @@
         </div>
 
         <div class="form-group">
-            <label>🙋‍♂️ 指定服務人員 *</label>
+            <label>🙋‍♂️ 指定服務人員 * <span id="loadingStaff" class="loading-text" style="display:none;">(正在讀取當日排班名單...)</span></label>
             <select id="staffName" required>
-                <option value="">-- 請選擇清潔人員 --</option>
-                <!-- 這裡手動列出您的 12 位員工，後面系統會根據日期自動比對 -->
-                <option value="人員A">人員A (台北/新北)</option>
-                <option value="人員B">人員B (台中)</option>
-                <option value="人員C">人員C (高雄)</option>
+                <option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>
             </select>
+        </div>
+
+        <div class="form-group">
+            <label>📝 特殊需求與備註 (選填)</label>
+            <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一併備註。"></textarea>
         </div>
 
         <button type="submit" class="btn-submit">確認並送出預約</button>
@@ -74,21 +77,58 @@
 </div>
 
 <script>
+    // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
+    var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
+
     // 自動計算結束時間 (2小時)
     document.getElementById('startTime').addEventListener('input', function() {
         var start = this.value;
         if(start) {
             var parts = start.split(':');
-            var endHour = parseInt(parts[0]) + 2;
-            if (parseInt(parts[0]) > 20 || (parseInt(parts[0]) == 20 && parseInt(parts[1]) > 0)) {
+            var endHour = parseInt(parts) + 2;
+            if (parseInt(parts) > 20 || (parseInt(parts) == 20 && parseInt(parts) > 0)) {
                 alert('最後進門時間為 20:00，請重新選擇！');
                 this.value = '';
                 document.getElementById('endTime').value = '';
                 return;
             }
             var endHourStr = endHour < 10 ? '0' + endHour : endHour;
-            document.getElementById('endTime').value = endHourStr + ':' + parts[1];
+            document.getElementById('endTime').value = endHourStr + ':' + parts;
         }
+    });
+
+    // 當客戶選好「預約日期」時，自動去後台抓有排班的人
+    document.getElementById('bookingDate').addEventListener('change', function() {
+        var selectedDate = this.value;
+        var staffSelect = document.getElementById('staffName');
+        var loadingText = document.getElementById('loadingStaff');
+        
+        if(!selectedDate) return;
+        
+        // 先清空原本的選單，只留不指定
+        staffSelect.innerHTML = '<option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
+        loadingText.style.display = 'inline';
+        
+        // 向大腦發送請求，抓取排班資料
+        fetch(gasUrl + '?date=' + selectedDate)
+        .then(res => res.json())
+        .then(data => {
+            loadingText.style.display = 'none';
+            if(data && data.length > 0) {
+                data.forEach(staff => {
+                    var opt = document.createElement('option');
+                    opt.value = staff.name;
+                    opt.innerHTML = staff.name + ' (主服務：' + staff.city + ')';
+                    staffSelect.appendChild(opt);
+                });
+            } else {
+                alert('提醒：目前該日期暫無人員排班，客戶仍可選擇【不指定】送出預約由您手動調度。');
+            }
+        })
+        .catch(err => {
+            loadingText.style.display = 'none';
+            console.error('無法讀取排班：', err);
+        });
     });
 
     // 表單送出
@@ -102,11 +142,9 @@
             bookingDate: document.getElementById('bookingDate').value,
             startTime: document.getElementById('startTime').value,
             endTime: document.getElementById('endTime').value,
-            staffName: document.getElementById('staffName').value
+            staffName: document.getElementById('staffName').value,
+            note: document.getElementById('note').value
         };
-
-        // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
-        var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
 
         alert('預約處理中，請稍候...');
         
