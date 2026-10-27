@@ -79,7 +79,7 @@
 
 <script>
     // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
-    var gasUrl = "請貼上您的GAS網址"; 
+    var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
 
     // 自動計算結束時間 (2小時)
     document.getElementById('startTime').addEventListener('input', function() {
@@ -130,13 +130,11 @@
         });
     });
 
-    // 表單送出
+    // 表單送出 (最純粹的直連)
     document.getElementById('orderForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         var submitBtn = document.getElementById('submitBtn');
-        
-        // 🔒 按鈕防重複點擊、更換提示字
         submitBtn.disabled = true;
         submitBtn.innerHTML = "⏳ 預約資料傳送中，請勿關閉網頁...";
         
@@ -151,18 +149,12 @@
             note: document.getElementById('note').value
         };
         
-        // 設定 8 秒鐘超時防呆，如果 Google 太慢，就主動中斷並提示成功
-        var controller = new AbortController();
-        var timeoutId = setTimeout(() => controller.abort(), 8000);
-        
         fetch(gasUrl, {
             method: "POST",
-            body: JSON.stringify(formData),
-            signal: controller.signal
+            body: JSON.stringify(formData)
         })
         .then(res => res.json())
         .then(data => {
-            clearTimeout(timeoutId);
             alert(data.message);
             if(data.status === "success") {
                 location.reload();
@@ -172,10 +164,9 @@
             }
         })
         .catch(err => {
-            clearTimeout(timeoutId);
-            // 💡 核心優化：因為前面確認試算表一定收得到資料，所以即使網路逾時也當作成功，不讓客戶乾等！
-            alert("🎉 預約資料已成功送出！\n後台已同步更新，我們將會為您妥善安排。");
-            location.reload();
+            alert("連線發生錯誤，請將此訊息提供給系統管理者：\n" + err);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = "確認並送出預約";
         });
     });
 </script>
