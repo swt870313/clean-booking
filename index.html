@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏡 專業清潔服務 - 線上自主預約</title>
+    <title>🌟 藍寶星空清潔預約 🌟</title>
     <style>
         :root { --primary: #0077b6; --secondary: #00b4d8; --bg: #f8f9fa; }
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg); padding: 15px; display: flex; justify-content: center; }
@@ -23,7 +23,7 @@
 <body>
 
 <div class="booking-card">
-    <h2>🧹 課制化清潔預約</h2>
+    <h2>✨ 藍寶星空清潔預約 ✨</h2>
     <form id="orderForm">
         <div class="form-group">
             <label>👤 客戶姓名 (需與系統登記一致) *</label>
@@ -48,7 +48,8 @@
         </div>
 
         <div class="form-group">
-            <label>📅 預約日期 *</label>
+            <label>📅 預約日期 (配合排班，僅開放至下個月底) *</label>
+            <!-- 這裡會由下方的魔法程式自動鎖定可選範圍 -->
             <input type="date" id="bookingDate" required>
         </div>
 
@@ -81,20 +82,36 @@
     // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
     var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
 
+    // 🔒 核心防呆：自動計算預約日期限制（今天起算，最長只到下個月底）
+    function setDateLimits() {
+        var today = new Date();
+        
+        // 格式化為 YYYY-MM-DD
+        var formatDate = (d) => d.toISOString().split('T')[0];
+        
+        // 限制最快只能約今天
+        document.getElementById('bookingDate').setAttribute('min', formatDate(today));
+        
+        // 計算下個月的最後一天
+        var nextMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        document.getElementById('bookingDate').setAttribute('max', formatDate(nextMonthLastDay));
+    }
+    setDateLimits(); // 啟動日期限制鎖
+
     // 自動計算結束時間 (2小時)
     document.getElementById('startTime').addEventListener('input', function() {
         var start = this.value;
         if(start) {
             var parts = start.split(':');
-            var endHour = parseInt(parts) + 2;
-            if (parseInt(parts) > 20 || (parseInt(parts) == 20 && parseInt(parts) > 0)) {
+            var endHour = parseInt(parts[0]) + 2;
+            if (parseInt(parts[0]) > 20 || (parseInt(parts[0]) == 20 && parseInt(parts[1]) > 0)) {
                 alert('最後進門時間為 20:00，請重新選擇！');
                 this.value = '';
                 document.getElementById('endTime').value = '';
                 return;
             }
             var endHourStr = endHour < 10 ? '0' + endHour : endHour;
-            document.getElementById('endTime').value = endHourStr + ':' + parts;
+            document.getElementById('endTime').value = endHourStr + ':' + parts[1];
         }
     });
 
@@ -130,7 +147,7 @@
         });
     });
 
-    // 表單送出 (最純粹的直連)
+    // 表單送出 (包含動態處理中提示)
     document.getElementById('orderForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
