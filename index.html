@@ -55,7 +55,6 @@
         <div class="form-group">
             <label>🕒 服務時間 (單場2小時，或雙場4小時，最後進門20:00) *</label>
             <div class="time-range">
-                <!-- 💡 限制時間軸刻度為 30 分鐘 (1800秒) -->
                 <input type="time" id="startTime" min="10:00" max="20:00" step="1800" required>
                 <span>至</span>
                 <input type="time" id="endTime" min="12:00" max="24:00" step="1800" required>
@@ -132,18 +131,18 @@
         });
     });
 
-    // 表單送出 (包含 00/30分限制與時數比對防呆)
+    // 表單送出 (硬性欄位精準比對)
     document.getElementById('orderForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         var startTime = document.getElementById('startTime').value;
         var endTime = document.getElementById('endTime').value;
         
-        // 1. 強制檢查分鐘是否為 00 或 30
+        // 🔒 1. 修正後的硬性檢查：精準切出「分」字串進行比對
         var startMin = startTime.split(':')[1];
         var endMin = endTime.split(':')[1];
-        if ((startMin !== '00' && startMin !== '30') || (endMin !== '00' && endMin !== '30')) {
-            alert('提醒：服務時間（分）只能點選 00分 或 30分，請重新微調，感謝您！');
+        if (startMin !== '00' && startMin !== '30' || endMin !== '00' && endMin !== '30') {
+            alert('提醒：服務時間（分）只能選擇 00分 或 30分，請重新微調，感謝您！');
             return;
         }
         
@@ -160,9 +159,9 @@
         
         var diffHours = (endMins - startMins) / 60;
         
-        // 3. 🚨 時數防呆：如果不滿 2 小時、或是 3 小時這種不對的數字，直接跳警告攔截
+        // 3. 檢查是不是「剛好2小時」或「剛好4小時」
         if (diffHours !== 2 && diffHours !== 4) {
-            alert('提醒：單場預約為兩個小時(可預約開場(四小時))。');
+            alert('提醒：單場預約為兩個小時(可預約兩場(四小時))。您目前的預約時數為 ' + diffHours + ' 小時，請重新調整！');
             return;
         }
         
