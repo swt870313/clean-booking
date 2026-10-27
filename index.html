@@ -16,7 +16,7 @@
         .time-range { display: flex; gap: 10px; align-items: center; }
         .btn-submit { background: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: all 0.3s; }
         .btn-submit:hover { background: var(--secondary); }
-        .btn-submit:disabled { background: #a8dadc; cursor: not-allowed; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
         .loading-text { color: #888; font-size: 14px; font-style: italic; }
     </style>
 </head>
@@ -49,7 +49,6 @@
 
         <div class="form-group">
             <label>📅 預約日期 (配合排班，僅開放至下個月底) *</label>
-            <!-- 這裡會由下方的魔法程式自動鎖定可選範圍 -->
             <input type="date" id="bookingDate" required>
         </div>
 
@@ -65,7 +64,7 @@
         <div class="form-group">
             <label>🙋‍♂️ 指定服務人員 * <span id="loadingStaff" class="loading-text" style="display:none;">(正在讀取當日排班名單...)</span></label>
             <select id="staffName" required>
-                <option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>
+                <option value="">-- 請先選擇預約日期 --</option>
             </select>
         </div>
 
@@ -74,7 +73,7 @@
             <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一併備註。"></textarea>
         </div>
 
-        <button type="submit" id="submitBtn" class="btn-submit">確認並送出預約</button>
+        <button type="submit" id="submitBtn" class="btn-submit" disabled>請填妥資料</button>
     </form>
 </div>
 
@@ -82,29 +81,21 @@
     // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
     var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
 
-    // 🔒 核心防呆：自動計算預約日期限制（今天起算，最長只到下個月底）
     function setDateLimits() {
         var today = new Date();
-        
-        // 格式化為 YYYY-MM-DD
         var formatDate = (d) => d.toISOString().split('T')[0];
-        
-        // 限制最快只能約今天
         document.getElementById('bookingDate').setAttribute('min', formatDate(today));
-        
-        // 計算下個月的最後一天
         var nextMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
         document.getElementById('bookingDate').setAttribute('max', formatDate(nextMonthLastDay));
     }
-    setDateLimits(); // 啟動日期限制鎖
+    setDateLimits();
 
-    // 自動計算結束時間 (2小時)
     document.getElementById('startTime').addEventListener('input', function() {
         var start = this.value;
         if(start) {
             var parts = start.split(':');
-            var endHour = parseInt(parts[0]) + 2;
-            if (parseInt(parts[0]) > 20 || (parseInt(parts[0]) == 20 && parseInt(parts[1]) > 0)) {
+            var endHour = parseInt(parts[0], 10) + 2;
+            if (parseInt(parts[0], 10) > 20 || (parseInt(parts[0], 10) == 20 && parseInt(parts[1], 10) > 0)) {
                 alert('最後進門時間為 20:00，請重新選擇！');
                 this.value = '';
                 document.getElementById('endTime').value = '';
@@ -115,42 +106,51 @@
         }
     });
 
-    // 當客戶選好「預約日期」時，自動去後台抓有排班的人
+    // 📅 選擇日期時的防呆過濾
     document.getElementById('bookingDate').addEventListener('change', function() {
         var selectedDate = this.value;
         var staffSelect = document.getElementById('staffName');
         var loadingText = document.getElementById('loadingStaff');
+        var submitBtn = document.getElementById('submitBtn');
         
         if(!selectedDate) return;
         
-        staffSelect.innerHTML = '<option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
+        staffSelect.innerHTML = '<option value="">-- 正在載入名單 --</option>';
         loadingText.style.display = 'inline';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "請選擇服務人員";
         
         fetch(gasUrl + '?date=' + selectedDate)
         .then(res => res.json())
         .then(data => {
             loadingText.style.display = 'none';
             if(data && data.length > 0) {
+                // 當天有人上班，開放「不指定」與「員工名單」
+                staffSelect.innerHTML = '<option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
                 data.forEach(staff => {
                     var opt = document.createElement('option');
                     opt.value = staff.name;
                     opt.innerHTML = staff.name + ' (主服務：' + staff.city + ')';
                     staffSelect.appendChild(opt);
                 });
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "確認並送出預約";
             } else {
-                alert('提醒：目前該日期暫無人員排班，客戶仍可選擇【不指定】送出預約由您手動調度。');
+                // 當天完全沒人上班，強行鎖死
+                staffSelect.innerHTML = '<option value="">❌ 當日無人員排班，請更換日期</option>';
+                alert('提醒：您選擇的日期目前全公司暫無人員排班，客戶無法預約，請引導客戶更換其他日期！');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = "❌ 當日無人排班，無法送出";
             }
         })
         .catch(err => {
             loadingText.style.display = 'none';
-            console.error('無法讀取排班：', err);
+            staffSelect.innerHTML = '<option value="">連線失敗，請重試</option>';
         });
     });
 
-    // 表單送出 (包含動態處理中提示)
     document.getElementById('orderForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
         var submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = "⏳ 預約資料傳送中，請勿關閉網頁...";
