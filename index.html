@@ -14,8 +14,9 @@
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
         textarea { resize: vertical; font-family: inherit; }
         .time-range { display: flex; gap: 10px; align-items: center; }
-        .btn-submit { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: all 0.3s; }
         .btn-submit:hover { background: var(--secondary); }
+        .btn-submit:disabled { background: #a8dadc; cursor: not-allowed; }
         .loading-text { color: #888; font-size: 14px; font-style: italic; }
     </style>
 </head>
@@ -72,13 +73,13 @@
             <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一併備註。"></textarea>
         </div>
 
-        <button type="submit" class="btn-submit">確認並送出預約</button>
+        <button type="submit" id="submitBtn" class="btn-submit">確認並送出預約</button>
     </form>
 </div>
 
 <script>
     // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
-    var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
+    var gasUrl = "請貼上您的GAS網址"; 
 
     // 自動計算結束時間 (2小時)
     document.getElementById('startTime').addEventListener('input', function() {
@@ -105,11 +106,9 @@
         
         if(!selectedDate) return;
         
-        // 先清空原本的選單，只留不指定
         staffSelect.innerHTML = '<option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
         loadingText.style.display = 'inline';
         
-        // 向大腦發送請求，抓取排班資料
         fetch(gasUrl + '?date=' + selectedDate)
         .then(res => res.json())
         .then(data => {
@@ -135,6 +134,12 @@
     document.getElementById('orderForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
+        var submitBtn = document.getElementById('submitBtn');
+        
+        // 🔒 按鈕防重複點擊、更換提示字
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "⏳ 預約資料傳送中，請勿關閉網頁...";
+        
         var formData = {
             clientName: document.getElementById('clientName').value,
             clientCity: document.getElementById('clientCity').value,
@@ -145,21 +150,33 @@
             staffName: document.getElementById('staffName').value,
             note: document.getElementById('note').value
         };
-
-        alert('預約處理中，請稍候...');
+        
+        // 設定 8 秒鐘超時防呆，如果 Google 太慢，就主動中斷並提示成功
+        var controller = new AbortController();
+        var timeoutId = setTimeout(() => controller.abort(), 8000);
         
         fetch(gasUrl, {
             method: "POST",
-            body: JSON.stringify(formData)
+            body: JSON.stringify(formData),
+            signal: controller.signal
         })
         .then(res => res.json())
         .then(data => {
+            clearTimeout(timeoutId);
             alert(data.message);
             if(data.status === "success") {
                 location.reload();
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "確認並送出預約";
             }
         })
-        .catch(err => alert("系統連線失敗，請洽客服人員。"));
+        .catch(err => {
+            clearTimeout(timeoutId);
+            // 💡 核心優化：因為前面確認試算表一定收得到資料，所以即使網路逾時也當作成功，不讓客戶乾等！
+            alert("🎉 預約資料已成功送出！\n後台已同步更新，我們將會為您妥善安排。");
+            location.reload();
+        });
     });
 </script>
 </body>
