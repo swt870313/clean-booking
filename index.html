@@ -79,11 +79,11 @@
 
 <script>
     // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
-    var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
+    var gasUrl = "請貼上您的GAS網址"; 
 
     function setDateLimits() {
         var today = new Date();
-        var formatDate = (d) => d.toISOString().split('T')[0];
+        var formatDate = (d) => d.toISOString().split('T');
         document.getElementById('bookingDate').setAttribute('min', formatDate(today));
         var nextMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
         document.getElementById('bookingDate').setAttribute('max', formatDate(nextMonthLastDay));
@@ -94,15 +94,15 @@
         var start = this.value;
         if(start) {
             var parts = start.split(':');
-            var endHour = parseInt(parts[0], 10) + 2;
-            if (parseInt(parts[0], 10) > 20 || (parseInt(parts[0], 10) == 20 && parseInt(parts[1], 10) > 0)) {
+            var endHour = parseInt(parts, 10) + 2;
+            if (parseInt(parts, 10) > 20 || (parseInt(parts, 10) == 20 && parseInt(parts, 10) > 0)) {
                 alert('最後進門時間為 20:00，請重新選擇！');
                 this.value = '';
                 document.getElementById('endTime').value = '';
                 return;
             }
             var endHourStr = endHour < 10 ? '0' + endHour : endHour;
-            document.getElementById('endTime').value = endHourStr + ':' + parts[1];
+            document.getElementById('endTime').value = endHourStr + ':' + parts;
         }
     });
 
@@ -125,7 +125,6 @@
         .then(data => {
             loadingText.style.display = 'none';
             if(data && data.length > 0) {
-                // 當天有人上班，開放「不指定」與「員工名單」
                 staffSelect.innerHTML = '<option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
                 data.forEach(staff => {
                     var opt = document.createElement('option');
@@ -136,11 +135,11 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = "確認並送出預約";
             } else {
-                // 當天完全沒人上班，強行鎖死
-                staffSelect.innerHTML = '<option value="">❌ 當日無人員排班，請更換日期</option>';
-                alert('提醒：您選擇的日期目前全公司暫無人員排班，客戶無法預約，請引導客戶更換其他日期！');
+                // 💡 在此處修改對外顯示的提示文字，包裝成「預約已滿」
+                staffSelect.innerHTML = '<option value="">🔒 當日預約已滿，請更換日期</option>';
+                alert('您選擇的日期已經預約滿了，請更換其他您方便預約的日期，感謝您！');
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = "❌ 當日無人排班，無法送出";
+                submitBtn.innerHTML = "🔒 當日已滿，無法送出";
             }
         })
         .catch(err => {
