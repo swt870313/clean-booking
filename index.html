@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏡 專業清潔服務 - 線上自主預約</title>
+    <style>
+        :root { --primary: #0077b6; --secondary: #00b4d8; --bg: #f8f9fa; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg); padding: 15px; display: flex; justify-content: center; }
+        .booking-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); max-width: 480px; width: 100%; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; color: #333; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .time-range { display: flex; gap: 10px; align-items: center; }
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-submit:hover { background: var(--secondary); }
+    </style>
+</head>
+<body>
+
+<div class="booking-card">
+    <h2>🧹 課制化清潔預約</h2>
+    <form id="orderForm">
+        <div class="form-group">
+            <label>👤 客戶姓名 (需與系統登記一致) *</label>
+            <input type="text" id="clientName" required placeholder="請輸入您登記的完整姓名">
+        </div>
+        
+        <div class="form-group">
+            <label>📍 服務縣市 *</label>
+            <select id="clientCity" required>
+                <option value="">-- 請選擇縣市 --</option>
+                <option value="基隆">基隆</option><option value="台北市">台北市</option><option value="新北市">新北市</option>
+                <option value="桃園">桃園</option><option value="新竹">新竹</option><option value="苗栗">苗栗</option>
+                <option value="台中">台中</option><option value="彰化">彰化</option><option value="南投">南投</option>
+                <option value="雲林">雲林</option><option value="嘉義">嘉義</option><option value="台南">台南</option>
+                <option value="高雄">高雄</option><option value="屏東">屏東</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>區/鄉鎮/細部地址 *</label>
+            <input type="text" id="clientDistrict" required placeholder="例如：板橋區文化路一段XX號">
+        </div>
+
+        <div class="form-group">
+            <label>📅 預約日期 *</label>
+            <input type="date" id="bookingDate" required>
+        </div>
+
+        <div class="form-group">
+            <label>🕒 服務時間 (2小時一場，最後進門20:00) *</label>
+            <div class="time-range">
+                <input type="time" id="startTime" min="10:00" max="20:00" required>
+                <span>至</span>
+                <input type="time" id="endTime" readonly placeholder="系統自動計算">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>🙋‍♂️ 指定服務人員 *</label>
+            <select id="staffName" required>
+                <option value="">-- 請選擇清潔人員 --</option>
+                <!-- 這裡手動列出您的 12 位員工，後面系統會根據日期自動比對 -->
+                <option value="人員A">人員A (台北/新北)</option>
+                <option value="人員B">人員B (台中)</option>
+                <option value="人員C">人員C (高雄)</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn-submit">確認並送出預約</button>
+    </form>
+</div>
+
+<script>
+    // 自動計算結束時間 (2小時)
+    document.getElementById('startTime').addEventListener('input', function() {
+        var start = this.value;
+        if(start) {
+            var parts = start.split(':');
+            var endHour = parseInt(parts[0]) + 2;
+            if (parseInt(parts[0]) > 20 || (parseInt(parts[0]) == 20 && parseInt(parts[1]) > 0)) {
+                alert('最後進門時間為 20:00，請重新選擇！');
+                this.value = '';
+                document.getElementById('endTime').value = '';
+                return;
+            }
+            var endHourStr = endHour < 10 ? '0' + endHour : endHour;
+            document.getElementById('endTime').value = endHourStr + ':' + parts[1];
+        }
+    });
+
+    // 表單送出
+    document.getElementById('orderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = {
+            clientName: document.getElementById('clientName').value,
+            clientCity: document.getElementById('clientCity').value,
+            clientDistrict: document.getElementById('clientDistrict').value,
+            bookingDate: document.getElementById('bookingDate').value,
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value,
+            staffName: document.getElementById('staffName').value
+        };
+
+        // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
+        var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
+
+        alert('預約處理中，請稍候...');
+        
+        fetch(gasUrl, {
+            method: "POST",
+            body: JSON.stringify(formData)
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            if(data.status === "success") {
+                location.reload();
+            }
+        })
+        .catch(err => alert("系統連線失敗，請洽客服人員。"));
+    });
+</script>
+</body>
+</html>
