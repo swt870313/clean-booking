@@ -53,11 +53,12 @@
         </div>
 
         <div class="form-group">
-            <label>🕒 服務時間 (2小時一場，最後進門20:00) *</label>
+            <label>🕒 服務時間 (單場2小時，或雙場4小時，最後進門20:00) *</label>
             <div class="time-range">
-                <input type="time" id="startTime" min="10:00" max="20:00" required>
+                <!-- 💡 限制時間軸刻度為 30 分鐘 (1800秒) -->
+                <input type="time" id="startTime" min="10:00" max="20:00" step="1800" required>
                 <span>至</span>
-                <input type="time" id="endTime" readonly placeholder="系統自動計算">
+                <input type="time" id="endTime" min="12:00" max="24:00" step="1800" required>
             </div>
         </div>
 
@@ -83,28 +84,12 @@
 
     function setDateLimits() {
         var today = new Date();
-        var formatDate = (d) => d.toISOString().split('T');
+        var formatDate = (d) => d.toISOString().split('T')[0];
         document.getElementById('bookingDate').setAttribute('min', formatDate(today));
         var nextMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
         document.getElementById('bookingDate').setAttribute('max', formatDate(nextMonthLastDay));
     }
     setDateLimits();
-
-    document.getElementById('startTime').addEventListener('input', function() {
-        var start = this.value;
-        if(start) {
-            var parts = start.split(':');
-            var endHour = parseInt(parts, 10) + 2;
-            if (parseInt(parts, 10) > 20 || (parseInt(parts, 10) == 20 && parseInt(parts, 10) > 0)) {
-                alert('最後進門時間為 20:00，請重新選擇！');
-                this.value = '';
-                document.getElementById('endTime').value = '';
-                return;
-            }
-            var endHourStr = endHour < 10 ? '0' + endHour : endHour;
-            document.getElementById('endTime').value = endHourStr + ':' + parts;
-        }
-    });
 
     // 📅 選擇日期時的防呆過濾
     document.getElementById('bookingDate').addEventListener('change', function() {
@@ -135,7 +120,6 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = "確認並送出預約";
             } else {
-                // 💡 在此處修改對外顯示的提示文字，包裝成「預約已滿」
                 staffSelect.innerHTML = '<option value="">🔒 當日預約已滿，請更換日期</option>';
                 alert('您選擇的日期已經預約滿了，請更換其他您方便預約的日期，感謝您！');
                 submitBtn.disabled = true;
@@ -148,8 +132,40 @@
         });
     });
 
+    // 表單送出 (包含 00/30分限制與時數比對防呆)
     document.getElementById('orderForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        var startTime = document.getElementById('startTime').value;
+        var endTime = document.getElementById('endTime').value;
+        
+        // 1. 強制檢查分鐘是否為 00 或 30
+        var startMin = startTime.split(':')[1];
+        var endMin = endTime.split(':')[1];
+        if ((startMin !== '00' && startMin !== '30') || (endMin !== '00' && endMin !== '30')) {
+            alert('提醒：服務時間（分）只能點選 00分 或 30分，請重新微調，感謝您！');
+            return;
+        }
+        
+        // 2. 計算時數落差
+        var startParts = startTime.split(':');
+        var endParts = endTime.split(':');
+        var startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+        var endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+        
+        if (endMins <= startMins) {
+            alert('結束時間必須大於開始時間！');
+            return;
+        }
+        
+        var diffHours = (endMins - startMins) / 60;
+        
+        // 3. 🚨 時數防呆：如果不滿 2 小時、或是 3 小時這種不對的數字，直接跳警告攔截
+        if (diffHours !== 2 && diffHours !== 4) {
+            alert('提醒：單場預約為兩個小時(可預約開場(四小時))。');
+            return;
+        }
+        
         var submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = "⏳ 預約資料傳送中，請勿關閉網頁...";
@@ -159,8 +175,8 @@
             clientCity: document.getElementById('clientCity').value,
             clientDistrict: document.getElementById('clientDistrict').value,
             bookingDate: document.getElementById('bookingDate').value,
-            startTime: document.getElementById('startTime').value,
-            endTime: document.getElementById('endTime').value,
+            startTime: startTime,
+            endTime: endTime,
             staffName: document.getElementById('staffName').value,
             note: document.getElementById('note').value
         };
@@ -180,7 +196,7 @@
             }
         })
         .catch(err => {
-            alert("連線發生錯誤，請將此訊息提供給系統管理者：\n" + err);
+            alert("連線發生錯誤，請重新再試：\n" + err);
             submitBtn.disabled = false;
             submitBtn.innerHTML = "確認並送出預約";
         });
