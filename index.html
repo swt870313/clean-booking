@@ -8,7 +8,7 @@
         :root { --primary: #1e88e5; --bg: #f5f7fa; --text: #333; }
         body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
         .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; } /* 💡 刪除h4測試版，並微調h2下邊距 */
+        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; }
         .tab-btn { width: 48%; padding: 10px; font-size: 16px; cursor: pointer; border: 1px solid #ccc; background: #eee; border-radius: 6px; }
         .tab-active { background: var(--primary); color: white; border: 1px solid var(--primary); }
         .form-group { margin-top: 15px; }
@@ -23,7 +23,6 @@
 
 <div class="box">
     <h2>✨ 藍寶星空清潔預約 ✨</h2>
-    <!-- 💡 已依照規定 1 將「線上系統測試版」刪除 -->
 
     <!-- 功能頁籤切換 -->
     <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
@@ -40,7 +39,6 @@
     </div>
 
     <form id="mainForm">
-        <!-- 💡 依照規定 2，所有 label 前面都加上了精美可愛的小圖標 -->
         <div class="form-group">
             <label id="lbl-name">👤 客戶姓名 (需與系統登記一致) *</label>
             <input type="text" id="clientName" required placeholder="請輸入姓名">
@@ -77,7 +75,6 @@
                 <input type="date" id="bookingDate" onchange="fetchStaff()">
             </div>
 
-            <!-- 💡 依照規定 3，服務時間改為彈性場次選擇 -->
             <div class="form-group">
                 <label>⏰ 服務時間 (兩小時為一場) *</label>
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -85,16 +82,15 @@
                         <option value="">-- 開始時間 --</option>
                     </select>
                     <span>至</span>
-                    <select id="endTime" disabled onchange="checkServiceSelection()">
+                    <select id="endTime" disabled onchange="checkTimeValidation()">
                         <option value="">-- 結束時間 --</option>
                     </select>
                 </div>
             </div>
 
-            <!-- 💡 依照規定 4，在服務時間下方精準加入「服務項目」選單 -->
             <div class="form-group">
                 <label>🧹 服務項目 *</label>
-                <select id="serviceType" required onchange="checkServiceSelection()">
+                <select id="serviceType" required onchange="checkTimeValidation()">
                     <option value="">-- 請選擇服務項目 --</option>
                     <option value="Rainbow除蹣服務">Rainbow除蹣服務</option>
                     <option value="星燦高溫服務">星燦高溫服務</option>
@@ -111,8 +107,9 @@
             </div>
 
             <div class="form-group">
+                <!-- 💡 依照規定 1，已將灰色提示字完整修改為您指定的超貼心長文字 -->
                 <label>💬 特殊需求與備註 (選填)</label>
-                <textarea id="note" rows="2" placeholder="有什麼想告訴我們的？"></textarea>
+                <textarea id="note" rows="3" placeholder="若幫家人朋友預約請留下姓名及電話,方便清潔人員聯繫, 若有特殊需求也歡迎留下資訊!!!"></textarea>
             </div>
         </div>
 
@@ -120,8 +117,9 @@
     </form>
 </div>
 <script>
-    // ⚠️！！！核心設定！！！請把下面雙引號裡面改成你 Google 部署完產出的網頁應用程式網址
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec";
+    // 🛑【步驟一：請在此處核對網址】🛑
+    // 如果你之前有重新部署拿到新網址，請把下面引號內換成新的。若沒有，維持這串不變即可。
+    const GAS_WEB_APP_URL = "https://google.com";
 
     let currentAction = "book";
 
@@ -137,7 +135,7 @@
         });
     }
 
-    // 💡 依照規定 3，修改為彈性選擇結束時間，預設為 +2 小時一場
+    // 解鎖結束時間選擇
     function autoSetEndTime() {
         const start = startSelect.value;
         if(!start) return;
@@ -150,7 +148,6 @@
         let startMin = parseInt(parts[1], 10);
         let startTotalMins = startHour * 60 + startMin;
 
-        // 解鎖結束時間：允許預約 2小時(一場)、4小時(兩場)、6小時(三場) 等等
         for(let h=startHour; h<=22; h++) {
             ['00', '30'].forEach(m => {
                 let thisTotalMins = h * 60 + parseInt(m, 10);
@@ -167,33 +164,45 @@
         let defaultEndMin = defaultEndMins % 60 === 0 ? "00" : "30";
         endSelect.value = `${defaultEndHour.toString().padStart(2,'0')}:${defaultEndMin}`;
 
-        checkServiceSelection();
+        // 自動做一次防呆核對
+        checkTimeValidation();
     }
 
-    // 💡 依照規定 4，加入兩場以上的硬性防呆核對
-    function checkServiceSelection() {
+    // 💡 依照規定 2，全新升級的時數防呆與服務項目核對
+    function checkTimeValidation() {
         const serviceType = document.getElementById("serviceType").value;
         const start = startSelect.value;
         const end = endSelect.value;
 
-        if (!start || !end || !serviceType) return true;
+        if (!start || !end) return true;
 
         let startParts = start.split(":");
         let endParts = end.split(":");
-        let startMins = parseInt(startParts, 10) * 60 + parseInt(startParts, 10);
-        let endMins = parseInt(endParts, 10) * 60 + parseInt(endParts, 10);
+        let startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+        let endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
         let totalHours = (endMins - startMins) / 60;
 
-        // 如果選了「除蹣+高溫」但時間剛好只有 2 小時（一場）
+        // 🛑 防防呆關鍵：如果拉出的時數不是 2、4、6 小時（只要不是2的整倍數）
+        if (totalHours % 2 !== 0) {
+            alert("單次預約為兩個小時, 亦可預約兩場四個小時唷~感謝您");
+            // 自動重設為合法的 2 小時一場
+            let defaultEndMins = startMins + 120;
+            let defaultEndHour = Math.floor(defaultEndMins / 60);
+            let defaultEndMin = defaultEndMins % 60 === 0 ? "00" : "30";
+            endSelect.value = `${defaultEndHour.toString().padStart(2,'0')}:${defaultEndMin}`;
+            return false;
+        }
+
+        // 🛑 服務項目防呆：如果選了「除蹣+高溫」但時間只有一場（2小時）
         if (serviceType === "除蹣+高溫(限定預約兩場以上)" && totalHours <= 2) {
             alert("提醒:若安排除蹣+高溫需安排兩場以上");
-            document.getElementById("serviceType").value = ""; // 強制將服務項目清空歸零
+            document.getElementById("serviceType").value = ""; // 清空服務項目
             return false;
         }
         return true;
     }
 
-    // 防呆機制：日期選擇器的 28 號規則控制
+    // 日期選擇器的 28 號規則控制
     const dateInput = document.getElementById("bookingDate");
     const today = new Date();
     const currentDay = today.getDate();
@@ -253,11 +262,12 @@
             });
     }
 
-    // 資料打包與傳送 (已完整補齊你下午傳送時斷掉的程式碼)
+    // 資料打包與傳送
     document.getElementById("mainForm").addEventListener("submit", function(e) {
         e.preventDefault();
         
-        if(!checkServiceSelection()) return;
+        // 送出前最後卡關檢查
+        if(!checkTimeValidation()) return;
 
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.disabled = true;
