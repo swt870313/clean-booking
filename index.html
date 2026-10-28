@@ -107,7 +107,6 @@
             </div>
 
             <div class="form-group">
-                <!-- 💡 依照規定 1，已將灰色提示字完整修改為您指定的超貼心長文字 -->
                 <label>💬 特殊需求與備註 (選填)</label>
                 <textarea id="note" rows="3" placeholder="若幫家人朋友預約請留下姓名及電話,方便清潔人員聯繫, 若有特殊需求也歡迎留下資訊!!!"></textarea>
             </div>
@@ -117,8 +116,7 @@
     </form>
 </div>
 <script>
-    // 🛑【步驟一：請在此處核對網址】🛑
-    // 如果你之前有重新部署拿到新網址，請把下面引號內換成新的。若沒有，維持這串不變即可。
+    // ⚠️！！！核心設定！！！請把下面雙引號裡面改成你 Google 部署完產出的網頁應用程式網址
     const GAS_WEB_APP_URL = "https://google.com";
 
     let currentAction = "book";
@@ -144,8 +142,8 @@
         endSelect.disabled = false;
 
         let parts = start.split(":");
-        let startHour = parseInt(parts[0], 10);
-        let startMin = parseInt(parts[1], 10);
+        let startHour = parseInt(parts, 10);
+        let startMin = parseInt(parts, 10);
         let startTotalMins = startHour * 60 + startMin;
 
         for(let h=startHour; h<=22; h++) {
@@ -168,7 +166,7 @@
         checkTimeValidation();
     }
 
-    // 💡 依照規定 2，全新升級的時數防呆與服務項目核對
+    // 時數防呆與服務項目核對
     function checkTimeValidation() {
         const serviceType = document.getElementById("serviceType").value;
         const start = startSelect.value;
@@ -178,14 +176,13 @@
 
         let startParts = start.split(":");
         let endParts = end.split(":");
-        let startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-        let endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+        let startMins = parseInt(startParts, 10) * 60 + parseInt(startParts, 10);
+        let endMins = parseInt(endParts, 10) * 60 + parseInt(endParts, 10);
         let totalHours = (endMins - startMins) / 60;
 
-        // 🛑 防防呆關鍵：如果拉出的時數不是 2、4、6 小時（只要不是2的整倍數）
+        // 如果拉出的時數不是 2 的倍數
         if (totalHours % 2 !== 0) {
             alert("單次預約為兩個小時, 亦可預約兩場四個小時唷~感謝您");
-            // 自動重設為合法的 2 小時一場
             let defaultEndMins = startMins + 120;
             let defaultEndHour = Math.floor(defaultEndMins / 60);
             let defaultEndMin = defaultEndMins % 60 === 0 ? "00" : "30";
@@ -193,10 +190,10 @@
             return false;
         }
 
-        // 🛑 服務項目防呆：如果選了「除蹣+高溫」但時間只有一場（2小時）
+        // 如果選了「除蹣+高溫」但時間只有一場（2小時）
         if (serviceType === "除蹣+高溫(限定預約兩場以上)" && totalHours <= 2) {
             alert("提醒:若安排除蹣+高溫需安排兩場以上");
-            document.getElementById("serviceType").value = ""; // 清空服務項目
+            document.getElementById("serviceType").value = ""; 
             return false;
         }
         return true;
@@ -266,25 +263,29 @@
     document.getElementById("mainForm").addEventListener("submit", function(e) {
         e.preventDefault();
         
-        // 送出前最後卡關檢查
-        if(!checkTimeValidation()) return;
+        if(currentAction === 'book' && !checkTimeValidation()) return;
 
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.disabled = true;
         submitBtn.innerText = "處理中，請稍後...";
 
+        // 💡 依照規定 1，將服務項目打包成「厚括號【】」，後面緊跟著客戶的備註文字
+        let selectedService = document.getElementById("serviceType").value;
+        let userNote = document.getElementById("note").value;
+        let finalCombinedNote = currentAction === 'book' ? `【${selectedService}】${userNote}` : userNote;
+
         let payload = {
             action: currentAction,
             clientName: document.getElementById("clientName").value,
             clientPhone: document.getElementById("clientPhone").value,
-            serviceType: document.getElementById("serviceType").value,
+            serviceType: selectedService,
             bookingDate: document.getElementById("bookingDate").value,
             startTime: document.getElementById("startTime").value,
             endTime: document.getElementById("endTime").value,
             staffName: document.getElementById("staffName").value,
             clientCity: document.getElementById("clientCity").value,
             clientDistrict: document.getElementById("clientDistrict").value,
-            note: document.getElementById("note").value
+            note: finalCombinedNote
         };
 
         fetch(GAS_WEB_APP_URL, {
@@ -293,6 +294,7 @@
         })
         .then(res => res.json())
         .then(resData => {
+            // 💡 依照規定 2，不論是常規預約還是取消預約，只要後端有傳回訊息（resData.message），就直接跳出來通知客戶
             alert(resData.message);
             if(resData.status === "success") {
                 document.getElementById("mainForm").reset();
@@ -300,8 +302,9 @@
             }
         })
         .catch(err => {
-            alert("預約連線處理完成！請至後端查收資料。");
-            document.getElementById("mainForm").reset();
+            // 🛑 如果後端程式碼完全沒有回應或噴錯（例如網址填錯、後端崩潰），才會走到這裡
+            alert("與後端伺服器連線失敗，請確認您的 GAS 部署網址是否正確，或檢查網路連線狀態！");
+            console.error(err);
         })
         .finally(() => {
             submitBtn.disabled = false;
