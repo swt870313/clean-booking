@@ -152,16 +152,23 @@
         }
     }
 
-    // 🔒 智慧防漏鎖：限制只能預約今天起的 30 天內
+    // 🔒 相容性修復版：手機瀏覽器也能完美支援的 30 天日期鎖
     function setDateLimits() {
         var today = new Date();
-        var formatDate = (d) => d.toISOString().split('T')[0];
-        document.getElementById('bookingDate').setAttribute('min', formatDate(today));
         
-        // 自動加上 30 天
+        var yyyy = today.getFullYear();
+        var mm = String(today.getMonth() + 1).padStart(2, '0');
+        var dd = String(today.getDate()).padStart(2, '0');
+        var minDateStr = yyyy + '-' + mm + '-' + dd;
+        document.getElementById('bookingDate').setAttribute('min', minDateStr);
+        
         var maxDate = new Date();
         maxDate.setDate(today.getDate() + 30);
-        document.getElementById('bookingDate').setAttribute('max', formatDate(maxDate));
+        var max_yyyy = maxDate.getFullYear();
+        var max_mm = String(maxDate.getMonth() + 1).padStart(2, '0');
+        var max_dd = String(maxDate.getDate()).padStart(2, '0');
+        var maxDateStr = max_yyyy + '-' + max_mm + '-' + max_dd;
+        document.getElementById('bookingDate').setAttribute('max', maxDateStr);
     }
     setDateLimits();
 
@@ -212,20 +219,20 @@
         var startTime = document.getElementById('startTime').value;
         var endTime = document.getElementById('endTime').value;
         
-        var startMin = startTime.split(':')[1];
-        var endMin = currentMode === 'book' ? endTime.split(':')[1] : '00';
-        if ((startMin !== '00' && startMin !== '30') || (endMin !== '00' && endMin !== '30')) {
+        var startParts = startTime.split(':');
+        var endParts = currentMode === 'book' ? endTime.split(':') : ['00', '00'];
+        
+        var startMinStr = startParts;
+        var endMinStr = endParts;
+        
+        if ((startMinStr !== '00' && startMinStr !== '30') || (currentMode === 'book' && endMinStr !== '00' && endMinStr !== '30')) {
             alert('提醒：服務時間（分）只能選擇 00分 或 30分，請重新微調，感謝您！');
             return;
         }
         
         if (currentMode === 'book') {
-            var startParts = startTime.split(':');
-            var endParts = endTime.split(':');
-            
-            // 💡 修正後的精準分鐘加總公式
-            var startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-            var endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+            var startMins = parseInt(startParts, 10) * 60 + parseInt(startParts, 10);
+            var endMins = parseInt(endParts, 10) * 60 + parseInt(endParts, 10);
             
             if (endMins <= startMins) { alert('結束時間必須大於開始時間！'); return; }
             
