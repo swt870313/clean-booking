@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>清潔服務線上預約</title>
+    <title>藍寶星空清潔預約系統</title>
     <style>
         :root {
             --primary-color: #2a9d8f;
@@ -108,7 +108,7 @@
 <body>
 
 <div class="booking-container">
-    <h2>🧹 潔淨生活 - 線上預約服務</h2>
+    <h2>🧹 藍寶星空 - 線上預約服務</h2>
     
     <form id="bookingForm">
         <!-- 基本資料 -->
@@ -125,7 +125,7 @@
         <!-- 💡 在這裡精準幫你加上指定的三個服務項目下拉選單 -->
         <div class="form-group">
             <label for="serviceType">服務項目 *</label>
-            <select id="serviceType" required onchange="checkServiceSelection()">
+            <select id="serviceType" required>
                 <option value="">-- 請選擇服務項目 --</option>
                 <option value="RAINBOW除蹣服務">RAINBOW除蹣服務</option>
                 <option value="星燦高溫服務">星燦高溫服務</option>
@@ -190,6 +190,7 @@
         <button type="submit">確認送出預約</button>
     </form>
 </div>
+
 <script>
     // ⚠️！！！核心設定！！！請把下面雙引號裡面改成你 Google 部署完產出的網頁應用程式網址
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec";
@@ -201,29 +202,21 @@
     const tomorrowString = tomorrow.toISOString().split('T');
     document.getElementById('date').setAttribute('min', tomorrowString);
 
-    // 💡【全新加入的防呆攔截】因為此網頁為單場固定時段，客戶一選第三選項立刻彈窗並清空！
-    function checkServiceSelection() {
-        const serviceType = document.getElementById("serviceType").value;
-        if (serviceType === "除蹣+高溫 (限定預約四小時以上)") {
-            alert("❌ 提示：除蹣+高溫 (限定預約四小時以上)");
-            document.getElementById("serviceType").value = ""; // 直接幫客戶歸零清空
-        }
-    }
-
     // 表單送出事件處理
     document.getElementById('bookingForm').addEventListener('submit', function(e) {
         e.preventDefault(); // 阻止頁面跳轉
 
-        const name = document.getElementById('name').value;
         const serviceType = document.getElementById('serviceType').value;
-        const userNote = document.getElementById('notes').value;
 
-        // 💡 自動把選好的服務項目貼在備註的最前面，這樣你的試算表後端就不用大改
-        const combinedNote = `【服務項目：${serviceType}】 ` + userNote;
+        // 💡 核心防呆：因為單場時段只有2或4小時，如果選了第三個選項，立刻跳出你指定的字眼阻擋，完全不給送出！
+        if (serviceType === "除蹣+高溫 (限定預約四小時以上)") {
+            alert("❌ 提示：除蹣+高溫 (限定預約四小時以上)");
+            return; // 終止程式，不讓資料傳去後端
+        }
 
-        // 收集表單資料，結構與你 14:58 的原始檔完全一模一樣
+        // 收集表單資料，結構完全恢復你 14:58 的原始檔結構
         const bookingData = {
-            name: name,
+            name: document.getElementById('name').value,
             phone: document.getElementById('phone').value,
             address: document.getElementById('address').value,
             serviceType: serviceType,
@@ -231,10 +224,10 @@
             size: document.getElementById('size').value,
             date: document.getElementById('date').value,
             timeSlot: document.getElementById('timeSlot').value,
-            notes: combinedNote
+            notes: document.getElementById('notes').value
         };
 
-        // 發送資料到你的後端 GAS
+        // 發送資料到後端 GAS
         fetch(GAS_WEB_APP_URL, {
             method: "POST",
             body: JSON.stringify(bookingData)
@@ -247,7 +240,7 @@
             }
         })
         .catch(err => {
-            // 如果連線有異常，依舊保留你原本測試用的紀錄與提示
+            // 如果連線尚未完全設定，依然保留你原本測試用的紀錄與提示
             console.log('收到預約資料：', bookingData);
             alert(`感謝您的預約，${bookingData.name} 先生/小姐！\n預約項目：${bookingData.serviceType}\n我們將會盡快與您聯絡確認細節。`);
             document.getElementById('bookingForm').reset();
