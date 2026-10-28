@@ -46,7 +46,6 @@
 
         <div class="form-group">
             <label>📱 聯絡電話 (填寫 10 位手機號碼) *</label>
-            <!-- 💡 限制必須為 09 開頭且剛好 10 碼的數字 -->
             <input type="tel" id="clientPhone" required pattern="09\d{8}" placeholder="例如：0912345678">
         </div>
         
@@ -116,7 +115,6 @@
                 <select id="staffName">
                     <option value="">-- 請先選擇預約日期 --</option>
                 </select>
-                <!-- 💡 建議 2 的優雅小包裝小提示 -->
                 <span class="staff-hint" id="unassignedHint" style="display:none;">💡 提示：選擇【不指定】者，若最終派單需跨縣市調度，公司將於電話核對時告知並另收 50 元車馬費。</span>
             </div>
 
@@ -193,7 +191,6 @@
     }
     setDateLimits();
 
-    // 監聽不指定選單提示
     document.getElementById('staffName').addEventListener('change', function() {
         var hint = document.getElementById('unassignedHint');
         if (this.value === "不指定(由公司安排)") {
@@ -252,12 +249,9 @@
         var endTime = document.getElementById('endTime').value;
         var bookingDate = document.getElementById('bookingDate').value;
         
-        // 🔒 1. 24小時內禁止自主取消防呆 (僅取消模式需要)
         if (currentMode === 'cancel') {
             var now = new Date();
             var targetDateTime = new Date(bookingDate + "T" + startTime + ":00");
-            
-            // 計算小時落差
             var timeDiff = targetDateTime.getTime() - now.getTime();
             var hourDiff = timeDiff / (1000 * 60 * 60);
             
@@ -271,18 +265,23 @@
         var startParts = startTime.split(':');
         var endParts = currentMode === 'book' ? endTime.split(':') : ['00', '00'];
         
-        var startHour = parseInt(startParts, 10);
-        var startMin = parseInt(startParts, 10);
-        var endHour = parseInt(endParts, 10);
-        var endMin = parseInt(endParts, 10);
+        // 💡 終極修復公式：強制將時、分完全轉換為純數字分鐘進行落差計算，絕不產生小數點
+        var startHour = parseInt(startParts[0], 10);
+        var startMin = parseInt(startParts[1], 10);
+        var endHour = parseInt(endParts[0], 10);
+        var endMin = parseInt(endParts[1], 10);
         
         if (currentMode === 'book') {
-            var startMins = startHour * 60 + startMin;
-            var endMins = endHour * 60 + endMin;
+            var startTotalMins = startHour * 60 + startMin;
+            var endTotalMins = endHour * 60 + endMin;
             
-            if (endMins <= startMins) { alert('結束時間必須大於開始時間！'); return; }
+            if (endTotalMins <= startTotalMins) { alert('結束時間必須大於開始時間！'); return; }
             
-            var diffHours = (endMins - startMins) / 60;
+            var diffHours = (endTotalMins - startTotalMins) / 60;
+            
+            // 精準四捨五入到小數點第一位，防止 2.0333 的瀏覽器字串相加 Bug
+            diffHours = Math.round(diffHours * 10) / 10;
+            
             if (diffHours !== 2 && diffHours !== 4) {
                 alert('提醒：單場預約為兩個小時(可預約兩場(四小時))。您目前的預約時數為 ' + diffHours + ' 小時，請重新調整！');
                 return;
