@@ -68,13 +68,12 @@
         </div>
 
         <div class="form-group">
-            <label id="dateLabel">📅 預約日期 *</label>
+            <label id="dateLabel">📅 預約日期 (開放30天內預約) *</label>
             <input type="date" id="bookingDate" required>
         </div>
 
         <div class="form-group">
             <label id="timeLabel">🕒 服務時間 (單場2小時，最後進門20:00) *</label>
-            <!-- 💡 4. 加上明顯的紅色時間分（分）提示字 -->
             <span class="time-hint">⚠️ 提示：服務時間（分）僅能選擇 00分 或 30分 填寫</span>
             <div class="time-range" style="margin-top: 8px;">
                 <input type="time" id="startTime" min="10:00" max="20:00" step="1800" required>
@@ -128,7 +127,7 @@
             geoFields.style.display = 'block';
             staffFields.style.display = 'block';
             mainTitle.innerHTML = "✨ 藍寶星空清潔預約 ✨";
-            dateLabel.innerHTML = "📅 預約日期 *";
+            dateLabel.innerHTML = "📅 預約日期 (開放30天內預約) *";
             timeLabel.innerHTML = "🕒 服務時間 (單場2小時，最後進門20:00) *";
             timeToSpan.style.display = 'inline';
             endTime.style.display = 'inline';
@@ -153,12 +152,16 @@
         }
     }
 
+    // 🔒 智慧防漏鎖：限制只能預約今天起的 30 天內
     function setDateLimits() {
         var today = new Date();
-        var formatDate = (d) => d.toISOString().split('T');
+        var formatDate = (d) => d.toISOString().split('T')[0];
         document.getElementById('bookingDate').setAttribute('min', formatDate(today));
-        var nextMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-        document.getElementById('bookingDate').setAttribute('max', formatDate(nextMonthLastDay));
+        
+        // 自動加上 30 天
+        var maxDate = new Date();
+        maxDate.setDate(today.getDate() + 30);
+        document.getElementById('bookingDate').setAttribute('max', formatDate(maxDate));
     }
     setDateLimits();
 
@@ -219,8 +222,10 @@
         if (currentMode === 'book') {
             var startParts = startTime.split(':');
             var endParts = endTime.split(':');
-            var startMins = parseInt(startParts, 10) * 60 + parseInt(startParts, 10);
-            var endMins = parseInt(endParts, 10) * 60 + parseInt(endParts, 10);
+            
+            // 💡 修正後的精準分鐘加總公式
+            var startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+            var endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
             
             if (endMins <= startMins) { alert('結束時間必須大於開始時間！'); return; }
             
