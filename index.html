@@ -163,7 +163,7 @@
             </div>
         </div>
 
-        <!-- 時間預約 -->
+        <!-- 時間預約：原本單場固定2小時完全沒動，維持你最原始的時段與時間設計 -->
         <div class="form-row">
             <div class="form-group">
                 <label for="date">希望服務日期 *</label>
@@ -201,12 +201,12 @@
     const tomorrowString = tomorrow.toISOString().split('T');
     document.getElementById('date').setAttribute('min', tomorrowString);
 
-    // 💡【全新加入的防呆限制】因為單場固定2小時，只要選到第三個選項，立刻跳出你指定的字眼並清空！
+    // 💡【全新加入的防呆攔截】因為此網頁為單場固定時段，客戶一選第三選項立刻彈窗並清空！
     function checkServiceSelection() {
         const serviceType = document.getElementById("serviceType").value;
         if (serviceType === "除蹣+高溫 (限定預約四小時以上)") {
             alert("❌ 提示：除蹣+高溫 (限定預約四小時以上)");
-            document.getElementById("serviceType").value = ""; // 直接幫客戶清空選單，強制重選
+            document.getElementById("serviceType").value = ""; // 直接幫客戶歸零清空
         }
     }
 
@@ -218,10 +218,10 @@
         const serviceType = document.getElementById('serviceType').value;
         const userNote = document.getElementById('notes').value;
 
-        // 💡 悄悄把服務項目塞進備註最前面傳給後端，這樣你的後端就完全不需要跟著改！
+        // 💡 自動把選好的服務項目貼在備註的最前面，這樣你的試算表後端就不用大改
         const combinedNote = `【服務項目：${serviceType}】 ` + userNote;
 
-        // 收集表單資料，結構完全照你最原始的要求
+        // 收集表單資料，結構與你 14:58 的原始檔完全一模一樣
         const bookingData = {
             name: name,
             phone: document.getElementById('phone').value,
@@ -234,7 +234,7 @@
             notes: combinedNote
         };
 
-        // 發送資料到後端 Google Sheets
+        // 發送資料到你的後端 GAS
         fetch(GAS_WEB_APP_URL, {
             method: "POST",
             body: JSON.stringify(bookingData)
@@ -247,7 +247,7 @@
             }
         })
         .catch(err => {
-            // 這裡保留你原本測試時用的 console.log 與成功彈窗提示
+            // 如果連線有異常，依舊保留你原本測試用的紀錄與提示
             console.log('收到預約資料：', bookingData);
             alert(`感謝您的預約，${bookingData.name} 先生/小姐！\n預約項目：${bookingData.serviceType}\n我們將會盡快與您聯絡確認細節。`);
             document.getElementById('bookingForm').reset();
