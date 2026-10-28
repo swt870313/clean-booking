@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌟 藍寶星空清潔預約 🌟</title>
     <style>
-        :root { --primary: #0077b6; --secondary: #00b4d8; --bg: #f8f9fa; }
+        :root { --primary: #0077b6; --secondary: #00b4d8; --bg: #f8f9fa; --danger: #e63946; }
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg); padding: 15px; display: flex; justify-content: center; }
         .booking-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); max-width: 480px; width: 100%; }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 10px; }
+        .tab-container { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        .tab-btn { padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 20px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+        .tab-btn.active.book-mode { background: var(--primary); color: white; border-color: var(--primary); }
+        .tab-btn.active.cancel-mode { background: var(--danger); color: white; border-color: var(--danger); }
         .form-group { margin-bottom: 18px; }
         label { display: block; margin-bottom: 6px; font-weight: bold; color: #333; }
         input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
@@ -16,6 +20,8 @@
         .time-range { display: flex; gap: 10px; align-items: center; }
         .btn-submit { background: var(--primary); color: white; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: all 0.3s; }
         .btn-submit:hover { background: var(--secondary); }
+        .btn-submit.btn-cancel-mode { background: var(--danger); }
+        .btn-submit.btn-cancel-mode:hover { background: #ff4d6d; }
         .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
         .loading-text { color: #888; font-size: 14px; font-style: italic; }
     </style>
@@ -23,63 +29,126 @@
 <body>
 
 <div class="booking-card">
-    <h2>✨ 藍寶星空清潔預約 ✨</h2>
+    <h2 id="mainTitle">✨ 藍寶星空清潔預約 ✨</h2>
+    
+    <div class="tab-container">
+        <button type="button" id="tabBook" class="tab-btn active book-mode" onclick="switchMode('book')">線上預約</button>
+        <button type="button" id="tabCancel" class="tab-btn cancel-mode" onclick="switchMode('cancel')">取消預約</button>
+    </div>
+
     <form id="orderForm">
         <div class="form-group">
             <label>👤 客戶姓名 (需與系統登記一致) *</label>
             <input type="text" id="clientName" required placeholder="請輸入您登記的完整姓名">
         </div>
+
+        <div class="form-group">
+            <label>📱 聯絡電話 (需與系統登記一致) *</label>
+            <input type="tel" id="clientPhone" required placeholder="例如：0912345678">
+        </div>
         
-        <div class="form-group">
-            <label>📍 服務縣市 *</label>
-            <select id="clientCity" required>
-                <option value="">-- 請選擇縣市 --</option>
-                <option value="基隆">基隆</option><option value="台北市">台北市</option><option value="新北市">新北市</option>
-                <option value="桃園">桃園</option><option value="新竹">新竹</option><option value="苗栗">苗栗</option>
-                <option value="台中">台中</option><option value="彰化">彰化</option><option value="南投">南投</option>
-                <option value="雲林">雲林</option><option value="嘉義">嘉義</option><option value="台南">台南</option>
-                <option value="高雄">高雄</option><option value="屏東">屏東</option>
-            </select>
-        </div>
+        <div id="geoFields">
+            <div class="form-group">
+                <label>📍 服務縣市 *</label>
+                <select id="clientCity">
+                    <option value="">-- 請選擇縣市 --</option>
+                    <option value="基隆">基隆</option><option value="台北市">台北市</option><option value="新北市">新北市</option>
+                    <option value="桃園">桃園</option><option value="新竹">新竹</option><option value="苗栗">苗栗</option>
+                    <option value="台中">台中</option><option value="彰化">彰化</option><option value="南投">南投</option>
+                    <option value="雲林">雲林</option><option value="嘉義">嘉義</option><option value="台南">台南</option>
+                    <option value="高雄">高雄</option><option value="屏東">屏東</option>
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label>區/鄉鎮/細部地址 *</label>
-            <input type="text" id="clientDistrict" required placeholder="例如：板橋區文化路一段XX號">
-        </div>
-
-        <div class="form-group">
-            <label>📅 預約日期 (配合排班，僅開放至下個月底) *</label>
-            <input type="date" id="bookingDate" required>
-        </div>
-
-        <div class="form-group">
-            <label>🕒 服務時間 (單場2小時，或雙場4小時，最後進門20:00) *</label>
-            <div class="time-range">
-                <input type="time" id="startTime" min="10:00" max="20:00" step="1800" required>
-                <span>至</span>
-                <input type="time" id="endTime" min="12:00" max="24:00" step="1800" required>
+            <div class="form-group">
+                <label>區/鄉鎮/細部地址 *</label>
+                <input type="text" id="clientDistrict" placeholder="例如：板橋區文化路一段XX號">
             </div>
         </div>
 
         <div class="form-group">
-            <label>🙋‍♂️ 指定服務人員 * <span id="loadingStaff" class="loading-text" style="display:none;">(正在讀取當日排班名單...)</span></label>
-            <select id="staffName" required>
-                <option value="">-- 請先選擇預約日期 --</option>
-            </select>
+            <label id="dateLabel">📅 預約日期 *</label>
+            <input type="date" id="bookingDate" required>
         </div>
 
         <div class="form-group">
-            <label>📝 特殊需求與備註 (選填)</label>
-            <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一併備註。"></textarea>
+            <label id="timeLabel">🕒 服務時間 (單場2小時，最後進門20:00) *</label>
+            <div class="time-range">
+                <input type="time" id="startTime" min="10:00" max="20:00" step="1800" required>
+                <span id="timeToSpan">至</span>
+                <input type="time" id="endTime" min="12:00" max="24:00" step="1800" required>
+            </div>
+        </div>
+
+        <div id="staffFields">
+            <div class="form-group">
+                <label>🙋‍♂️ 指定服務人員 * <span id="loadingStaff" class="loading-text" style="display:none;">(正在讀取當日排班名單...)</span></label>
+                <select id="staffName">
+                    <option value="">-- 請先選擇預約日期 --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>📝 特殊需求與備註 (選填)</label>
+                <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一併備註。"></textarea>
+            </div>
         </div>
 
         <button type="submit" id="submitBtn" class="btn-submit" disabled>請填妥資料</button>
     </form>
 </div>
-
 <script>
-    // ⚠️ 請把引號內換成您在 Google 複製的那一長串網址！
+    // ⚠️ 請把下面引號內改成您在 Google 複製的那一長串網址！
     var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
+    var currentMode = 'book';
+
+    function switchMode(mode) {
+        currentMode = mode;
+        var tabBook = document.getElementById('tabBook');
+        var tabCancel = document.getElementById('tabCancel');
+        var geoFields = document.getElementById('geoFields');
+        var staffFields = document.getElementById('staffFields');
+        var mainTitle = document.getElementById('mainTitle');
+        var submitBtn = document.getElementById('submitBtn');
+        var dateLabel = document.getElementById('dateLabel');
+        var timeLabel = document.getElementById('timeLabel');
+        var timeToSpan = document.getElementById('timeToSpan');
+        var endTime = document.getElementById('endTime');
+        
+        document.getElementById('clientCity').required = (mode === 'book');
+        document.getElementById('clientDistrict').required = (mode === 'book');
+        document.getElementById('staffName').required = (mode === 'book');
+        
+        if(mode === 'book') {
+            tabBook.classList.add('active');
+            tabCancel.classList.remove('active');
+            geoFields.style.display = 'block';
+            staffFields.style.display = 'block';
+            mainTitle.innerHTML = "✨ 藍寶星空清潔預約 ✨";
+            dateLabel.innerHTML = "📅 預約日期 *";
+            timeLabel.innerHTML = "🕒 服務時間 (單場2小時，最後進門20:00) *";
+            timeToSpan.style.display = 'inline';
+            endTime.style.display = 'inline';
+            endTime.required = true;
+            submitBtn.className = "btn-submit";
+            submitBtn.innerHTML = "確認並送出預約";
+            submitBtn.disabled = (document.getElementById('staffName').value === "");
+        } else {
+            tabBook.classList.remove('active');
+            tabCancel.classList.add('active');
+            geoFields.style.display = 'none';
+            staffFields.style.display = 'none';
+            mainTitle.innerHTML = "❌ 藍寶星空取消預約 ❌";
+            dateLabel.innerHTML = "📅 欲取消的日期 *";
+            timeLabel.innerHTML = "🕒 欲取消的開始時間 *";
+            timeToSpan.style.display = 'none';
+            endTime.style.display = 'none';
+            endTime.required = false;
+            submitBtn.className = "btn-submit btn-cancel-mode";
+            submitBtn.innerHTML = "確認並取消預約";
+            submitBtn.disabled = false;
+        }
+    }
 
     function setDateLimits() {
         var today = new Date();
@@ -90,8 +159,8 @@
     }
     setDateLimits();
 
-    // 📅 選擇日期時的防呆過濾
     document.getElementById('bookingDate').addEventListener('change', function() {
+        if (currentMode !== 'book') return;
         var selectedDate = this.value;
         var staffSelect = document.getElementById('staffName');
         var loadingText = document.getElementById('loadingStaff');
@@ -131,53 +200,49 @@
         });
     });
 
-    // 表單送出 (硬性欄位精準比對)
     document.getElementById('orderForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         var startTime = document.getElementById('startTime').value;
         var endTime = document.getElementById('endTime').value;
         
-        // 🔒 1. 修正後的硬性檢查：精準切出「分」字串進行比對
         var startMin = startTime.split(':')[1];
-        var endMin = endTime.split(':')[1];
-        if (startMin !== '00' && startMin !== '30' || endMin !== '00' && endMin !== '30') {
+        var endMin = currentMode === 'book' ? endTime.split(':')[1] : '00';
+        if ((startMin !== '00' && startMin !== '30') || (endMin !== '00' && endMin !== '30')) {
             alert('提醒：服務時間（分）只能選擇 00分 或 30分，請重新微調，感謝您！');
             return;
         }
         
-        // 2. 計算時數落差
-        var startParts = startTime.split(':');
-        var endParts = endTime.split(':');
-        var startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-        var endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
-        
-        if (endMins <= startMins) {
-            alert('結束時間必須大於開始時間！');
-            return;
-        }
-        
-        var diffHours = (endMins - startMins) / 60;
-        
-        // 3. 檢查是不是「剛好2小時」或「剛好4小時」
-        if (diffHours !== 2 && diffHours !== 4) {
-            alert('提醒：單場預約為兩個小時(可預約兩場(四小時))。您目前的預約時數為 ' + diffHours + ' 小時，請重新調整！');
-            return;
+        if (currentMode === 'book') {
+            var startParts = startTime.split(':');
+            var endParts = endTime.split(':');
+            var startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
+            var endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+            
+            if (endMins <= startMins) { alert('結束時間必須大於開始時間！'); return; }
+            
+            var diffHours = (endMins - startMins) / 60;
+            if (diffHours !== 2 && diffHours !== 4) {
+                alert('提醒：單場預約為兩個小時(可預約兩場(四小時))。您目前的預約時數為 ' + diffHours + ' 小時，請重新調整！');
+                return;
+            }
         }
         
         var submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
-        submitBtn.innerHTML = "⏳ 預約資料傳送中，請勿關閉網頁...";
+        submitBtn.innerHTML = currentMode === 'book' ? "⏳ 預約資料傳送中..." : "⏳ 正在處理取消請求...";
         
         var formData = {
+            action: currentMode,
             clientName: document.getElementById('clientName').value,
-            clientCity: document.getElementById('clientCity').value,
-            clientDistrict: document.getElementById('clientDistrict').value,
+            clientPhone: document.getElementById('clientPhone').value,
             bookingDate: document.getElementById('bookingDate').value,
             startTime: startTime,
-            endTime: endTime,
-            staffName: document.getElementById('staffName').value,
-            note: document.getElementById('note').value
+            endTime: currentMode === 'book' ? endTime : "",
+            clientCity: currentMode === 'book' ? document.getElementById('clientCity').value : "",
+            clientDistrict: currentMode === 'book' ? document.getElementById('clientDistrict').value : "",
+            staffName: currentMode === 'book' ? document.getElementById('staffName').value : "",
+            note: currentMode === 'book' ? document.getElementById('note').value : ""
         };
         
         fetch(gasUrl, {
@@ -191,15 +256,17 @@
                 location.reload();
             } else {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = "確認並送出預約";
+                submitBtn.innerHTML = currentMode === 'book' ? "確認並送出預約" : "確認並取消預約";
             }
         })
         .catch(err => {
             alert("連線發生錯誤，請重新再試：\n" + err);
             submitBtn.disabled = false;
-            submitBtn.innerHTML = "確認並送出預約";
+            submitBtn.innerHTML = currentMode === 'book' ? "確認並送出預約" : "確認並取消預約";
         });
     });
+    
+    switchMode('book');
 </script>
 </body>
 </html>
