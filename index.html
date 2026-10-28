@@ -74,11 +74,38 @@
 
         <div class="form-group">
             <label id="timeLabel">🕒 服務時間 (單場2小時，最後進門20:00) *</label>
-            <span class="time-hint">⚠️ 提示：服務時間（分）僅能選擇 00分 或 30分 填寫</span>
+            <span class="time-hint">⚠️ 提示：服務時間固定以 00分 或 30分 開課</span>
             <div class="time-range" style="margin-top: 8px;">
-                <input type="time" id="startTime" min="10:00" max="20:00" step="1800" required>
+                <!-- 💡 核心修改：全面改為精準下拉選單，防滾輪數字亂跳 -->
+                <select id="startTime" required>
+                    <option value="">-- 開始時間 --</option>
+                    <option value="10:00">10:00</option><option value="10:30">10:30</option>
+                    <option value="11:00">11:00</option><option value="11:30">11:30</option>
+                    <option value="12:00">12:00</option><option value="12:30">12:30</option>
+                    <option value="13:00">13:00</option><option value="13:30">13:30</option>
+                    <option value="14:00">14:00</option><option value="14:30">14:30</option>
+                    <option value="15:00">15:00</option><option value="15:30">15:30</option>
+                    <option value="16:00">16:00</option><option value="16:30">16:30</option>
+                    <option value="17:00">17:00</option><option value="17:30">17:30</option>
+                    <option value="18:00">18:00</option><option value="18:30">18:30</option>
+                    <option value="19:00">19:00</option><option value="19:30">19:30</option>
+                    <option value="20:00">20:00</option>
+                </select>
                 <span id="timeToSpan">至</span>
-                <input type="time" id="endTime" min="12:00" max="24:00" step="1800" required>
+                <select id="endTime" required>
+                    <option value="">-- 結束時間 --</option>
+                    <option value="12:00">12:00</option><option value="12:30">12:30</option>
+                    <option value="13:00">13:00</option><option value="13:30">13:30</option>
+                    <option value="14:00">14:00</option><option value="14:30">14:30</option>
+                    <option value="15:00">15:00</option><option value="15:30">15:30</option>
+                    <option value="16:00">16:00</option><option value="16:30">16:30</option>
+                    <option value="17:00">17:00</option><option value="17:30">17:30</option>
+                    <option value="18:00">18:00</option><option value="18:30">18:30</option>
+                    <option value="19:00">19:00</option><option value="19:30">19:30</option>
+                    <option value="20:00">20:00</option><option value="20:30">20:30</option>
+                    <option value="21:00">21:00</option><option value="21:30">21:30</option>
+                    <option value="22:00">22:00</option>
+                </select>
             </div>
         </div>
 
@@ -152,6 +179,16 @@
         }
     }
 
+    function setDateLimits() {
+        var today = new Date();
+        var yyyy = today.getFullYear();
+        var mm = String(today.getMonth() + 1).padStart(2, '0');
+        var dd = String(today.getDate()).padStart(2, '0');
+        var minDateStr = yyyy + '-' + mm + '-' + dd;
+        document.getElementById('bookingDate').setAttribute('min', minDateStr);
+    }
+    setDateLimits();
+
     document.getElementById('bookingDate').addEventListener('change', function() {
         if (currentMode !== 'book') return;
         var selectedDate = this.value;
@@ -171,7 +208,7 @@
         .then(data => {
             loadingText.style.display = 'none';
             if(data && data.length > 0) {
-                staffSelect.innerHTML = '<option value="不指定(by公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
+                staffSelect.innerHTML = '<option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
                 data.forEach(staff => {
                     var opt = document.createElement('option');
                     opt.value = staff.name;
@@ -199,21 +236,17 @@
         var startTime = document.getElementById('startTime').value;
         var endTime = document.getElementById('endTime').value;
         
-        // 💡 2. 終極修正：直接用時間物件解讀出真正的「分鐘數」，彻底解決相容性 Bug
         var startParts = startTime.split(':');
         var endParts = currentMode === 'book' ? endTime.split(':') : ['00', '00'];
         
-        var startMinVal = parseInt(startParts[1], 10);
-        var endMinVal = parseInt(endParts[1], 10);
-        
-        if (startMinVal !== 0 && startMinVal !== 30 || (currentMode === 'book' && endMinVal !== 0 && endMinVal !== 30)) {
-            alert('提醒：服務時間（分）只能選擇 00分 或 30分，請重新微調，感謝您！');
-            return;
-        }
+        var startHour = parseInt(startParts[0], 10);
+        var startMin = parseInt(startParts[1], 10);
+        var endHour = parseInt(endParts[0], 10);
+        var endMin = parseInt(endParts[1], 10);
         
         if (currentMode === 'book') {
-            var startMins = parseInt(startParts[0], 10) * 60 + startMinVal;
-            var endMins = parseInt(endParts[0], 10) * 60 + endMinVal;
+            var startMins = startHour * 60 + startMin;
+            var endMins = endHour * 60 + endMin;
             
             if (endMins <= startMins) { alert('結束時間必須大於開始時間！'); return; }
             
