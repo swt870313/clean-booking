@@ -92,7 +92,7 @@
 
             <div class="form-group">
                 <label>📝 特殊需求與備註 (選填)</label>
-                <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一開備註。"></textarea>
+                <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一併備註。"></textarea>
             </div>
         </div>
 
@@ -171,7 +171,7 @@
         .then(data => {
             loadingText.style.display = 'none';
             if(data && data.length > 0) {
-                staffSelect.innerHTML = '<option value="不指定(由公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
+                staffSelect.innerHTML = '<option value="不指定(by公司安排)">🙋‍♂️ 不指定（由公司安排）</option>';
                 data.forEach(staff => {
                     var opt = document.createElement('option');
                     opt.value = staff.name;
@@ -199,20 +199,21 @@
         var startTime = document.getElementById('startTime').value;
         var endTime = document.getElementById('endTime').value;
         
+        // 💡 2. 終極修正：直接用時間物件解讀出真正的「分鐘數」，彻底解決相容性 Bug
         var startParts = startTime.split(':');
         var endParts = currentMode === 'book' ? endTime.split(':') : ['00', '00'];
         
-        var startMinStr = startParts;
-        var endMinStr = endParts;
+        var startMinVal = parseInt(startParts[1], 10);
+        var endMinVal = parseInt(endParts[1], 10);
         
-        if ((startMinStr !== '00' && startMinStr !== '30') || (currentMode === 'book' && endMinStr !== '00' && endMinStr !== '30')) {
+        if (startMinVal !== 0 && startMinVal !== 30 || (currentMode === 'book' && endMinVal !== 0 && endMinVal !== 30)) {
             alert('提醒：服務時間（分）只能選擇 00分 或 30分，請重新微調，感謝您！');
             return;
         }
         
         if (currentMode === 'book') {
-            var startMins = parseInt(startParts, 10) * 60 + parseInt(startParts, 10);
-            var endMins = parseInt(endParts, 10) * 60 + parseInt(endParts, 10);
+            var startMins = parseInt(startParts[0], 10) * 60 + startMinVal;
+            var endMins = parseInt(endParts[0], 10) * 60 + endMinVal;
             
             if (endMins <= startMins) { alert('結束時間必須大於開始時間！'); return; }
             
