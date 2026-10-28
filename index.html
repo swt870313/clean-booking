@@ -197,10 +197,9 @@
         }
     }
 
-    // 🔒 28號閘門智慧控管：自動精算排班流程
     function setDateLimits() {
         var today = new Date();
-        var currentDay = today.getDate(); // 抓出今天是當月的幾號
+        var currentDay = today.getDate();
         
         var yyyy = today.getFullYear();
         var mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -209,11 +208,9 @@
         document.getElementById('bookingDate').setAttribute('min', minDateStr);
         
         var maxDate;
-        // 💡 核心邏輯：如果今天不到 28 號，最大範圍硬性鎖死在當月最後一天
         if (currentDay < 28) {
             maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         } else {
-            // 💡 到了 28 號或之後，自動提早放行到下個月底
             maxDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
         }
         
@@ -299,10 +296,11 @@
         var startParts = startTime.split(':');
         var endParts = currentMode === 'book' ? endTime.split(':') : ['00', '00'];
         
-        var startHour = parseInt(startParts, 10);
-        var startMin = parseInt(startParts, 10);
-        var endHour = parseInt(endParts, 10);
-        var endMin = parseInt(endParts, 10);
+        // 💡 修正後的完全精準抓取陣列索引，徹底修復 4.1 小時 Bug
+        var startHour = parseInt(startParts[0], 10);
+        var startMin = parseInt(startParts[1], 10);
+        var endHour = parseInt(endParts[0], 10);
+        var endMin = parseInt(endParts[1], 10);
         
         if (currentMode === 'book') {
             var startTotalMins = startHour * 60 + startMin;
@@ -311,6 +309,8 @@
             if (endTotalMins <= startTotalMins) { alert('結束時間必須大於開始時間！'); return; }
             
             var diffHours = (endTotalMins - startTotalMins) / 60;
+            
+            // 四捨五入防止小數點干擾
             diffHours = Math.round(diffHours * 10) / 10;
             
             if (diffHours !== 2 && diffHours !== 4) {
