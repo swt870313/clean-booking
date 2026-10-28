@@ -9,6 +9,7 @@
         body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); padding: 20px; display: flex; justify-content: center; }
         .box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
         h2 { text-align: center; color: var(--primary); margin-bottom: 25px; }
+        .tab-container { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .tab-btn { width: 48%; padding: 10px; font-size: 16px; cursor: pointer; border: 1px solid #ccc; background: #eee; border-radius: 6px; }
         .tab-active { background: var(--primary); color: white; border: 1px solid var(--primary); }
         .form-group { margin-top: 15px; }
@@ -24,8 +25,7 @@
 <div class="box">
     <h2>✨ 藍寶星空清潔預約 ✨</h2>
 
-    <!-- 功能頁籤切換 -->
-    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+    <div class="tab-container">
         <button id="btn-book" class="tab-btn tab-active" onclick="switchTab('book')">📅 線上預約</button>
         <button id="btn-cancel" class="tab-btn" onclick="switchTab('cancel')">❌ 取消預約</button>
     </div>
@@ -45,8 +45,13 @@
         </div>
 
         <div class="form-group" id="div-phone">
-            <label>📞 聯絡電話 (10位手機號碼) *</label>
+            <label id="lbl-phone">📞 聯絡電話 (10位手機號碼) *</label>
             <input type="tel" id="clientPhone" placeholder="例如：0912345678" pattern="[0-9]{10}">
+        </div>
+
+        <div class="form-group">
+            <label id="lbl-date">📆 預約日期 *</label>
+            <input type="date" id="bookingDate" required onchange="fetchStaff()">
         </div>
 
         <!-- 預約專用欄位群組 -->
@@ -71,11 +76,6 @@
             </div>
 
             <div class="form-group">
-                <label>📆 預約日期 *</label>
-                <input type="date" id="bookingDate" onchange="fetchStaff()">
-            </div>
-
-            <div class="form-group">
                 <label>⏰ 服務時間 (兩小時為一場) *</label>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <select id="startTime" onchange="autoSetEndTime()">
@@ -90,7 +90,7 @@
 
             <div class="form-group">
                 <label>🧹 服務項目 *</label>
-                <select id="serviceType" required onchange="checkTimeValidation()">
+                <select id="serviceType" onchange="checkTimeValidation()">
                     <option value="">-- 請選擇服務項目 --</option>
                     <option value="Rainbow除蹣服務">Rainbow除蹣服務</option>
                     <option value="星燦高溫服務">星燦高溫服務</option>
@@ -116,8 +116,8 @@
     </form>
 </div>
 <script>
-    // 🛑【步驟一：請在此處確認網址】🛑
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec";
+    // ⚠️！！！填寫網址提醒！！！請把下面雙引號裡面改成你的 Google 部署網址喔！
+    const GAS_WEB_APP_URL = "https://google.com";
 
     let currentAction = "book";
 
@@ -127,25 +127,20 @@
     for(let h=10; h<=20; h++) {
         ['00', '30'].forEach(m => {
             let timeStr = `${h.toString().padStart(2,'0')}:${m}`;
-            if(!(h===20 && m==='30')) {
-                startSelect.options.add(new Option(timeStr, timeStr));
-            }
+            if(!(h===20 && m==='30')) { startSelect.options.add(new Option(timeStr, timeStr)); }
         });
     }
 
-    // 解鎖結束時間選擇
+    // 當客戶選了開始時間，自動解鎖並填入結束時間選項
     function autoSetEndTime() {
         const start = startSelect.value;
         if(!start) return;
-        
         endSelect.innerHTML = '<option value="">-- 結束時間 --</option>';
         endSelect.disabled = false;
-
         let parts = start.split(":");
         let startHour = parseInt(parts[0], 10);
         let startMin = parseInt(parts[1], 10);
         let startTotalMins = startHour * 60 + startMin;
-
         for(let h=startHour; h<=22; h++) {
             ['00', '30'].forEach(m => {
                 let thisTotalMins = h * 60 + parseInt(m, 10);
@@ -155,58 +150,46 @@
                 }
             });
         }
-        
-        // 預設為加 2 小時（一場）
         let defaultEndMins = startTotalMins + 120;
         let defaultEndHour = Math.floor(defaultEndMins / 60);
         let defaultEndMin = defaultEndMins % 60 === 0 ? "00" : "30";
         endSelect.value = `${defaultEndHour.toString().padStart(2,'0')}:${defaultEndMin}`;
-
         checkTimeValidation();
     }
 
-    // 💡 徹底修復的時間防呆計算函數
+    // 精準修復：時間倍數與項目檢查函數
     function checkTimeValidation() {
+        if(currentAction === 'cancel') return true;
         const serviceType = document.getElementById("serviceType").value;
         const start = startSelect.value;
         const end = endSelect.value;
-
         if (!start || !end) return true;
-
         let startParts = start.split(":");
         let endParts = end.split(":");
-        
-        // 🎯 修正處：精準抓取陣列的 [0]小時 與 [1]分鐘，不再錯亂
         let startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
         let endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
         let totalHours = (endMins - startMins) / 60;
-
-        // 🛑 第一關防線：如果拉出的時數不是以2小時為單位的整倍數（例如拉出1.5、2.5小時）
         if (totalHours % 2 !== 0) {
             alert("單次預約為兩個小時, 一可預約兩場四個小時唷~感謝您");
-            // 自動修復：幫客戶拉回到正確的 2 小時倍數
             let defaultEndMins = startMins + 120;
             let defaultEndHour = Math.floor(defaultEndMins / 60);
             let defaultEndMin = defaultEndMins % 60 === 0 ? "00" : "30";
             endSelect.value = `${defaultEndHour.toString().padStart(2,'0')}:${defaultEndMin}`;
             return false;
         }
-
-        // 🛑 第二關防線：如果選了「除蹣+高溫」但時間剛好只有 2 小時（一場）
         if (serviceType === "除蹣+高溫(限定預約兩場以上)" && totalHours <= 2) {
             alert("提醒:若安排除蹣+高溫需安排兩場以上");
-            document.getElementById("serviceType").value = ""; // 清空項目
+            document.getElementById("serviceType").value = "";
             return false;
         }
         return true;
     }
 
-    // 日期選擇器的 28 號規則控制
+    // 日期限制（28號規則）
     const dateInput = document.getElementById("bookingDate");
     const today = new Date();
     const currentDay = today.getDate();
     dateInput.min = today.toISOString().split('T')[0];
-    
     if (currentDay < 28) {
         let lastDayOfThisMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         dateInput.max = lastDayOfThisMonth.toISOString().split('T')[0];
@@ -215,7 +198,7 @@
         dateInput.max = lastDayOfNextMonth.toISOString().split('T')[0];
     }
 
-    // 切換預約或取消介面
+    // 切換預約或取消頁籤
     function switchTab(action) {
         currentAction = action;
         document.getElementById("btn-book").classList.toggle("tab-active", action === 'book');
@@ -223,56 +206,48 @@
         document.getElementById("booking-fields").style.display = action === 'book' ? 'block' : 'none';
         document.getElementById("submitBtn").innerText = action === 'book' ? '🚀 送出預約申請' : '❌ 確認取消此場次';
         document.getElementById("lbl-name").innerText = action === 'book' ? '👤 客戶姓名 (需與系統登記一致) *' : '👤 取消人姓名 (需與原預約一致) *';
-        
+        document.getElementById("lbl-date").innerText = action === 'book' ? '📆 預約日期 *' : '📆 要取消的服務日期 *';
         document.getElementById("clientPhone").required = action === 'book';
         if(action === 'cancel') {
             document.getElementById("booking-fields").querySelectorAll('input, select').forEach(el => el.required = false);
+            dateInput.max = ""; // 取消時解開下個月日期限制
         } else {
             document.getElementById("clientCity").required = true;
             document.getElementById("clientDistrict").required = true;
-            document.getElementById("bookingDate").required = true;
             document.getElementById("startTime").required = true;
             document.getElementById("serviceType").required = true;
         }
     }
 
-    // 讀取當天有上班的員工
+    // 讀取當天上班人員
     function fetchStaff() {
+        if(currentAction === 'cancel') return;
         const date = dateInput.value;
         if(!date) return;
         const staffSelect = document.getElementById("staffName");
         staffSelect.innerHTML = '<option value="">正在讀取當日排班名單...</option>';
-        
         fetch(`${GAS_WEB_APP_URL}?date=${date}`)
             .then(res => res.json())
             .then(data => {
                 staffSelect.innerHTML = '<option value="不指定(由公司安排)">不指定(由公司安排)</option>';
-                if(data.error) {
-                    alert("讀取排班失敗: " + data.error);
-                    return;
-                }
-                data.forEach(staff => {
-                    staffSelect.options.add(new Option(`${staff.name} (${staff.city})`, staff.name));
-                });
+                if(data.error) { alert("讀取排班失敗: " + data.error); return; }
+                data.forEach(staff => { staffSelect.options.add(new Option(`${staff.name} (${staff.city})`, staff.name)); });
             })
-            .catch(err => {
-                staffSelect.innerHTML = '<option value="不指定(由公司安排)">不指定(由公司安排)(無法讀取)</option>';
-                console.error(err);
-            });
+            .catch(err => { staffSelect.innerHTML = '<option value="不指定(由公司安排)">不指定(由公司安排)(無法讀取)</option>'; });
     }
 
-    // 資料打包與傳送
+    // 表單打包與傳送
     document.getElementById("mainForm").addEventListener("submit", function(e) {
         e.preventDefault();
-        
         if(currentAction === 'book' && !checkTimeValidation()) return;
-
         const submitBtn = document.getElementById("submitBtn");
         submitBtn.disabled = true;
         submitBtn.innerText = "處理中，請稍後...";
 
         let selectedService = document.getElementById("serviceType").value;
         let userNote = document.getElementById("note").value;
+        
+        // 💡 規定 1：預約時自動在備註前方打包成「厚括號【】」格式傳往試算表
         let finalCombinedNote = currentAction === 'book' ? `【${selectedService}】${userNote}` : userNote;
 
         let payload = {
@@ -289,26 +264,15 @@
             note: finalCombinedNote
         };
 
-        fetch(GAS_WEB_APP_URL, {
-            method: "POST",
-            body: JSON.stringify(payload)
-        })
+        fetch(GAS_WEB_APP_URL, { method: "POST", body: JSON.stringify(payload) })
         .then(res => res.json())
         .then(resData => {
+            // 💡 規定 2：直接抓取後端回傳的堂數或退回次數彈窗文字
             alert(resData.message);
-            if(resData.status === "success") {
-                document.getElementById("mainForm").reset();
-                if(currentAction === 'book') switchTab('book');
-            }
+            if(resData.status === "success") { document.getElementById("mainForm").reset(); if(currentAction === 'book') switchTab('book'); }
         })
-        .catch(err => {
-            alert("與後端伺服器連線失敗，請檢查網路連線狀態或確認 GAS 網址！");
-            console.error(err);
-        })
-        .finally(() => {
-            submitBtn.disabled = false;
-            submitBtn.innerText = currentAction === 'book' ? '🚀 送出預約申請' : '❌ 確認取消此場次';
-        });
+        .catch(err => { alert("與後端連線發生錯誤，請確認網路或 GAS 部署網址！"); })
+        .finally(() => { submitBtn.disabled = false; submitBtn.innerText = currentAction === 'book' ? '🚀 送出預約申請' : '❌ 確認取消此場次'; });
     });
 </script>
 </body>
