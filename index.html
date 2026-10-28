@@ -24,6 +24,7 @@
         .btn-submit.btn-cancel-mode:hover { background: #ff4d6d; }
         .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
         .loading-text { color: #888; font-size: 14px; font-style: italic; }
+        .time-hint { color: var(--danger); font-size: 14px; font-weight: normal; display: block; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -73,7 +74,9 @@
 
         <div class="form-group">
             <label id="timeLabel">🕒 服務時間 (單場2小時，最後進門20:00) *</label>
-            <div class="time-range">
+            <!-- 💡 4. 加上明顯的紅色時間分（分）提示字 -->
+            <span class="time-hint">⚠️ 提示：服務時間（分）僅能選擇 00分 或 30分 填寫</span>
+            <div class="time-range" style="margin-top: 8px;">
                 <input type="time" id="startTime" min="10:00" max="20:00" step="1800" required>
                 <span id="timeToSpan">至</span>
                 <input type="time" id="endTime" min="12:00" max="24:00" step="1800" required>
@@ -98,8 +101,8 @@
     </form>
 </div>
 <script>
-    // ⚠️ 請把下面引號內改成您在 Google 複製的那一長串網址！
-    var gasUrl = "https://script.google.com/macros/s/AKfycbwh1W_XMDTUqD9xTdlORzolMwNy2Wt00cATA-ut2b1TjrKbj3m7TsX6qF6v5YjAGLfJ/exec"; 
+    // ⚠️ 請把引號內改成您在 Google 複製的那一長串網址！
+    var gasUrl = "請貼上您的GAS網址"; 
     var currentMode = 'book';
 
     function switchMode(mode) {
@@ -152,7 +155,7 @@
 
     function setDateLimits() {
         var today = new Date();
-        var formatDate = (d) => d.toISOString().split('T')[0];
+        var formatDate = (d) => d.toISOString().split('T');
         document.getElementById('bookingDate').setAttribute('min', formatDate(today));
         var nextMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
         document.getElementById('bookingDate').setAttribute('max', formatDate(nextMonthLastDay));
@@ -216,8 +219,8 @@
         if (currentMode === 'book') {
             var startParts = startTime.split(':');
             var endParts = endTime.split(':');
-            var startMins = parseInt(startParts[0], 10) * 60 + parseInt(startParts[1], 10);
-            var endMins = parseInt(endParts[0], 10) * 60 + parseInt(endParts[1], 10);
+            var startMins = parseInt(startParts, 10) * 60 + parseInt(startParts, 10);
+            var endMins = parseInt(endParts, 10) * 60 + parseInt(endParts, 10);
             
             if (endMins <= startMins) { alert('結束時間必須大於開始時間！'); return; }
             
