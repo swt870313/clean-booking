@@ -25,6 +25,7 @@
         .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
         .loading-text { color: #888; font-size: 14px; font-style: italic; }
         .time-hint { color: var(--danger); font-size: 14px; font-weight: normal; display: block; margin-top: 4px; }
+        .staff-hint { color: #0077b6; font-size: 14px; font-weight: normal; display: block; margin-top: 6px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -44,8 +45,9 @@
         </div>
 
         <div class="form-group">
-            <label>📱 聯絡電話 (需與系統登記一致) *</label>
-            <input type="tel" id="clientPhone" required placeholder="例如：0912345678">
+            <label>📱 聯絡電話 (填寫 10 位手機號碼) *</label>
+            <!-- 💡 限制必須為 09 開頭且剛好 10 碼的數字 -->
+            <input type="tel" id="clientPhone" required pattern="09\d{8}" placeholder="例如：0912345678">
         </div>
         
         <div id="geoFields">
@@ -76,7 +78,6 @@
             <label id="timeLabel">🕒 服務時間 (單場2小時，最後進門20:00) *</label>
             <span class="time-hint">⚠️ 提示：服務時間固定以 00分 或 30分 開課</span>
             <div class="time-range" style="margin-top: 8px;">
-                <!-- 💡 核心修改：全面改為精準下拉選單，防滾輪數字亂跳 -->
                 <select id="startTime" required>
                     <option value="">-- 開始時間 --</option>
                     <option value="10:00">10:00</option><option value="10:30">10:30</option>
@@ -115,6 +116,8 @@
                 <select id="staffName">
                     <option value="">-- 請先選擇預約日期 --</option>
                 </select>
+                <!-- 💡 建議 2 的優雅小包裝小提示 -->
+                <span class="staff-hint" id="unassignedHint" style="display:none;">💡 提示：選擇【不指定】者，若最終派單需跨縣市調度，公司將於電話核對時告知並另收 50 元車馬費。</span>
             </div>
 
             <div class="form-group">
@@ -176,6 +179,7 @@
             submitBtn.className = "btn-submit btn-cancel-mode";
             submitBtn.innerHTML = "確認並取消預約";
             submitBtn.disabled = false;
+            document.getElementById('unassignedHint').style.display = 'none';
         }
     }
 
@@ -188,6 +192,16 @@
         document.getElementById('bookingDate').setAttribute('min', minDateStr);
     }
     setDateLimits();
+
+    // 監聽不指定選單提示
+    document.getElementById('staffName').addEventListener('change', function() {
+        var hint = document.getElementById('unassignedHint');
+        if (this.value === "不指定(由公司安排)") {
+            hint.style.display = 'block';
+        } else {
+            hint.style.display = 'none';
+        }
+    });
 
     document.getElementById('bookingDate').addEventListener('change', function() {
         if (currentMode !== 'book') return;
@@ -202,6 +216,7 @@
         loadingText.style.display = 'inline';
         submitBtn.disabled = true;
         submitBtn.innerHTML = "請選擇服務人員";
+        document.getElementById('unassignedHint').style.display = 'none';
         
         fetch(gasUrl + '?date=' + selectedDate)
         .then(res => res.json())
@@ -235,14 +250,31 @@
         
         var startTime = document.getElementById('startTime').value;
         var endTime = document.getElementById('endTime').value;
+        var bookingDate = document.getElementById('bookingDate').value;
+        
+        // 🔒 1. 24小時內禁止自主取消防呆 (僅取消模式需要)
+        if (currentMode === 'cancel') {
+            var now = new Date();
+            var targetDateTime = new Date(bookingDate + "T" + startTime + ":00");
+            
+            // 計算小時落差
+            var timeDiff = targetDateTime.getTime() - now.getTime();
+            var hourDiff = timeDiff / (1000 * 60 * 60);
+            
+            if (hourDiff < 24) {
+                alert("❌ 無法取消：已進入服務前 24 小時內，系統不開放線上自主取消，請改點選官方 LINE 聯絡客服由人工協助處理，感謝您！");
+                location.reload();
+                return;
+            }
+        }
         
         var startParts = startTime.split(':');
         var endParts = currentMode === 'book' ? endTime.split(':') : ['00', '00'];
         
-        var startHour = parseInt(startParts[0], 10);
-        var startMin = parseInt(startParts[1], 10);
-        var endHour = parseInt(endParts[0], 10);
-        var endMin = parseInt(endParts[1], 10);
+        var startHour = parseInt(startParts, 10);
+        var startMin = parseInt(startParts, 10);
+        var endHour = parseInt(endParts, 10);
+        var endMin = parseInt(endParts, 10);
         
         if (currentMode === 'book') {
             var startMins = startHour * 60 + startMin;
@@ -265,7 +297,7 @@
             action: currentMode,
             clientName: document.getElementById('clientName').value,
             clientPhone: document.getElementById('clientPhone').value,
-            bookingDate: document.getElementById('bookingDate').value,
+            bookingDate: bookingDate,
             startTime: startTime,
             endTime: currentMode === 'book' ? endTime : "",
             clientCity: currentMode === 'book' ? document.getElementById('clientCity').value : "",
