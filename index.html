@@ -8,13 +8,10 @@
         :root { --primary: #0077b6; --secondary: #00b4d8; --bg: #f8f9fa; --danger: #e63946; }
         body { font-family: "Microsoft JhengHei", sans-serif; background-color: var(--bg); padding: 15px; display: flex; justify-content: center; }
         .booking-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); max-width: 480px; width: 100%; }
-        h2 { text-align: center; color: var(--primary); margin-bottom: 5px; }
-        
-        /* 💡 預約須知精美排版樣式 */
+        h2 { text-align: center; color: var(--primary); margin-bottom: 10px; }
         .notice-box { background-color: #f1f5f9; border-left: 4px solid var(--primary); padding: 12px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; color: #475569; line-height: 1.5; }
         .notice-box.cancel-style { border-left-color: var(--danger); background-color: #fff5f5; }
         .notice-title { font-weight: bold; color: #1e293b; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-        
         .tab-container { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
         .tab-btn { padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 20px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
         .tab-btn.active.book-mode { background: var(--primary); color: white; border-color: var(--primary); }
@@ -43,12 +40,11 @@
         <button type="button" id="tabCancel" class="tab-btn cancel-mode" onclick="switchMode('cancel')">取消預約</button>
     </div>
 
-    <!-- 💡 預約須知告示牌區塊 -->
     <div id="noticeBox" class="notice-box">
         <div class="notice-title">📌 藍寶星空預約須知：</div>
         • 開放時間：每日 10:00 - 20:00 之間進門預約。<br>
         • 預約時數：單場固定為 2 小時（或雙場連續 4 小時）。<br>
-        • 日期鎖定：因配合兼職人員排班，僅開放至下個月底。
+        • 日期鎖定：每月 28 號起方開放下個月預約。
     </div>
 
     <form id="orderForm">
@@ -178,9 +174,8 @@
             submitBtn.innerHTML = "確認並送出預約";
             submitBtn.disabled = (document.getElementById('staffName').value === "");
             
-            // 預約須知文字切換
             noticeBox.className = "notice-box";
-            noticeBox.innerHTML = '<div class="notice-title">📌 藍寶星空預約須知：</div>• 開放時間：每日 10:00 - 20:00 之間進門預約。<br>• 預約時數：單場固定為 2 小時（或雙場連續 4 小時）。<br>• 日期鎖定：因配合兼職人員排班，僅開放至下個月底。';
+            noticeBox.innerHTML = '<div class="notice-title">📌 藍寶星空預約須知：</div>• 開放時間：每日 10:00 - 20:00 之間進門預約。<br>• 預約時數：單場固定為 2 小時（或雙場連續 4 小時）。<br>• 日期鎖定：每月 28 號起方開放下個月預約。';
         } else {
             tabBook.classList.remove('active');
             tabCancel.classList.add('active');
@@ -197,28 +192,34 @@
             submitBtn.disabled = false;
             document.getElementById('unassignedHint').style.display = 'none';
             
-            // 取消須知文字切換
             noticeBox.className = "notice-box cancel-style";
             noticeBox.innerHTML = '<div class="notice-title">⚠️ 取消須知事項：</div>• 線上取消：僅受理服務時間前 24 小時以上之取消。<br>• 臨時取消：若在 24 小時內，請點選 LINE 聯絡客服由人工處理。';
         }
     }
 
-    // 🔒 智慧防漏鎖：徹底修復跨月漏洞！自動鎖定只能選「當月與下個月底」
+    // 🔒 28號閘門智慧控管：自動精算排班流程
     function setDateLimits() {
         var today = new Date();
+        var currentDay = today.getDate(); // 抓出今天是當月的幾號
         
-        // 1. 設定最小日期為今天
         var yyyy = today.getFullYear();
         var mm = String(today.getMonth() + 1).padStart(2, '0');
         var dd = String(today.getDate()).padStart(2, '0');
         var minDateStr = yyyy + '-' + mm + '-' + dd;
         document.getElementById('bookingDate').setAttribute('min', minDateStr);
         
-        // 2. 自動計算下個月的最後一天 (例如：10月計算出來會是 11/30)
-        var nextMonthLastDay = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-        var max_yyyy = nextMonthLastDay.getFullYear();
-        var max_mm = String(nextMonthLastDay.getMonth() + 1).padStart(2, '0');
-        var max_dd = String(nextMonthLastDay.getDate()).padStart(2, '0');
+        var maxDate;
+        // 💡 核心邏輯：如果今天不到 28 號，最大範圍硬性鎖死在當月最後一天
+        if (currentDay < 28) {
+            maxDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        } else {
+            // 💡 到了 28 號或之後，自動提早放行到下個月底
+            maxDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+        }
+        
+        var max_yyyy = maxDate.getFullYear();
+        var max_mm = String(maxDate.getMonth() + 1).padStart(2, '0');
+        var max_dd = String(maxDate.getDate()).padStart(2, '0');
         var maxDateStr = max_yyyy + '-' + max_mm + '-' + max_dd;
         document.getElementById('bookingDate').setAttribute('max', maxDateStr);
     }
