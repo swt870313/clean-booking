@@ -68,7 +68,7 @@
         </div>
 
         <div class="form-group">
-            <label id="dateLabel">📅 預約日期 (開放30天內預約) *</label>
+            <label id="dateLabel">📅 預約日期 *</label>
             <input type="date" id="bookingDate" required>
         </div>
 
@@ -92,7 +92,7 @@
 
             <div class="form-group">
                 <label>📝 特殊需求與備註 (選填)</label>
-                <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一併備註。"></textarea>
+                <textarea id="note" rows="3" placeholder="若您是幫家人預約，請在此留下家人的【姓名】與【電話】。若有其他清潔需求也請一開備註。"></textarea>
             </div>
         </div>
 
@@ -127,7 +127,7 @@
             geoFields.style.display = 'block';
             staffFields.style.display = 'block';
             mainTitle.innerHTML = "✨ 藍寶星空清潔預約 ✨";
-            dateLabel.innerHTML = "📅 預約日期 (開放30天內預約) *";
+            dateLabel.innerHTML = "📅 預約日期 *";
             timeLabel.innerHTML = "🕒 服務時間 (單場2小時，最後進門20:00) *";
             timeToSpan.style.display = 'inline';
             endTime.style.display = 'inline';
@@ -151,26 +151,6 @@
             submitBtn.disabled = false;
         }
     }
-
-    // 🔒 相容性修復版：手機瀏覽器也能完美支援的 30 天日期鎖
-    function setDateLimits() {
-        var today = new Date();
-        
-        var yyyy = today.getFullYear();
-        var mm = String(today.getMonth() + 1).padStart(2, '0');
-        var dd = String(today.getDate()).padStart(2, '0');
-        var minDateStr = yyyy + '-' + mm + '-' + dd;
-        document.getElementById('bookingDate').setAttribute('min', minDateStr);
-        
-        var maxDate = new Date();
-        maxDate.setDate(today.getDate() + 30);
-        var max_yyyy = maxDate.getFullYear();
-        var max_mm = String(maxDate.getMonth() + 1).padStart(2, '0');
-        var max_dd = String(maxDate.getDate()).padStart(2, '0');
-        var maxDateStr = max_yyyy + '-' + max_mm + '-' + max_dd;
-        document.getElementById('bookingDate').setAttribute('max', maxDateStr);
-    }
-    setDateLimits();
 
     document.getElementById('bookingDate').addEventListener('change', function() {
         if (currentMode !== 'book') return;
